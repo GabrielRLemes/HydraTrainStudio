@@ -1,56 +1,79 @@
 <div align="center">
   <img src="HydraTrainStudio_Assets/branding/hydra_lockup_compact.png" width="420" alt="HydraTrainStudio">
-  <p>Da primeira imagem à comparação dos checkpoints de um LoRA, em um aplicativo local.</p>
-  <p><a href="https://github.com/GabrielRLemes/HydraTrainStudio/releases"><b>Baixar para Windows ou Linux</b></a> · <a href="#primeiro-projeto">Primeiro projeto</a> · <a href="#próximas-versões">Próximas versões</a></p>
+  <p><strong>Collect media. Review your dataset. Train and compare your LoRAs.</strong></p>
+  <p>A guided local workflow for Krea 2, Anima and Illustrious.</p>
+  <p><a href="https://github.com/GabrielRLemes/HydraTrainStudio/releases"><b>Download for Windows or Linux</b></a> · <a href="#your-first-project">Getting started</a> · <a href="#upcoming-updates">Upcoming updates</a></p>
 </div>
 
-![Tela inicial do HydraTrainStudio](docs/inicio.png)
+![HydraTrainStudio home screen](docs/inicio.png)
 
-## Instalação
+## What makes HydraTrainStudio different
 
-| Plataforma | Primeiro acesso | Próximas aberturas |
+**HydraTrainStudio connects media collection, dataset preparation, approval, training and checkpoint comparison in one application.** Its focus is the work that takes an image from a download or local folder to an approved training sample, then helps you inspect the resulting LoRA versions.
+
+**Search and download or import → Extract video frames → Review crops, tags and captions → Approve the dataset → Train → Compare checkpoints**
+
+- **Start with your media.** Search supported sites, import local images and videos, and extract frames within the same project.
+- **Review what will reach the trainer.** Inspect the image preview, adjust the crop, edit tags and captions, and approve samples for the selected model profile and target resolution.
+- **Keep captioning connected to review.** Generate or improve captions using the image, tags and your edited text. Apply actions to selected items or regenerate captions and tags across the project.
+- **Move from approval to training.** Use the automatic settings or open advanced controls for epochs, rank, alpha, batch size, gradient accumulation and more.
+- **Compare the versions you trained.** Generate checkpoint grids with shared prompts and seeds, mark favorites, retest them with another seed, and resume an incomplete comparison.
+
+HydraTrainStudio integrates established training engines, including sd-scripts and musubi-tuner through lora-scripts-anima, with ComfyUI for test generation. These projects are credited in [Third-party components](THIRD_PARTY.md).
+
+## Installation
+
+| Platform | First launch | Open it again |
 |---|---|---|
-| Windows x64 | Na release, baixe e execute **HydraTrainStudio-Windows.exe**. | Use o menu Iniciar ou abra **HydraTrainStudio.exe** em `%LOCALAPPDATA%\HydraTrainStudio`. |
-| Linux x86-64 · experimental | Baixe **HydraTrainStudio-Linux.sh** e execute `bash HydraTrainStudio-Linux.sh` na pasta do download. | Use o menu de aplicativos ou execute `bash "${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio/abrir-linux.sh"`. |
+| Windows x64 | Download and run **HydraTrainStudio-Windows.exe** from a release. | Use the Start menu or open **HydraTrainStudio.exe** in `%LOCALAPPDATA%\HydraTrainStudio`. |
+| Linux x86-64 · experimental | Download **HydraTrainStudio-Linux.sh** and run `bash HydraTrainStudio-Linux.sh` from the download folder. | Use the application menu or run `bash "${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio/abrir-linux.sh"`. |
 
-O launcher baixa o pacote da versão, verifica o SHA-256, instala o código da interface e dos motores de integração e abre o aplicativo. Na primeira abertura, o assistente oferece os componentes locais. Marque as famílias desejadas, **Caption** para visão local e **ComfyUI** para gerar testes. Você pode voltar ao assistente por **Configurações → Componentes**.
+The launcher downloads the release package, verifies its SHA-256 checksum, installs the interface and integration code, and opens the app. On the first launch, the component wizard lets you select the training families, **Caption** for local vision and **ComfyUI** for test generation. You can reopen it from the Components section in Settings.
 
-O treino local usa **NVIDIA com CUDA**. A instalação original usou uma RTX 3060 de 12 GB e 32 GB de RAM. O preset deve ser calibrado no computador de destino. Confira o espaço mostrado pelo assistente antes de baixar os pesos. Downloads por URL personalizada acrescentam espaço ao total exibido.
+Local training requires an **NVIDIA GPU with CUDA**. The original installation used an RTX 3060 with 12 GB of VRAM and 32 GB of system RAM. Calibrate the preset on the computer you will use. Check the space estimate before downloading weights. Custom model URLs require additional space beyond the displayed total.
 
-**Linux:** use uma sessão gráfica, driver NVIDIA compatível com a pilha CUDA 13 e Python 3.11 ou superior com Tk e venv. São necessários curl e unzip. Para compilar llama.cpp, instale CMake, um compilador C++ e, para aceleração CUDA, nvcc. Um `llama-server` já disponível no PATH também pode ser usado. O salvamento de chaves usa o chaveiro Secret Service do desktop. A validação em Linux com GPU física está no roteiro da versão.
+**Linux requirements:** a graphical desktop, an NVIDIA driver compatible with the CUDA 13 stack, Python 3.11 or newer with Tk and venv, curl and unzip. Building llama.cpp requires CMake and a C++ compiler, plus nvcc for CUDA acceleration. An existing `llama-server` on PATH can also be used. Saved credentials use the desktop's Secret Service keyring. Full installation and training validation on physical Linux GPUs remains planned.
 
-## Primeiro projeto
+## Your first project
 
-1. Em **Configurações**, escolha a família, calibre a resolução e configure o serviço de visão.
-2. Em **Mídias**, importe arquivos, consulte os sites habilitados ou extraia frames de vídeo.
-3. Em **Revisão**, confira as miniaturas, ajuste o recorte e edite tags e captions. Você pode refazer a seleção ou o projeto inteiro. A aprovação prepara as imagens e as legendas para o treino.
-4. Em **Treino e testes**, escolha **Automático** ou ajuste épocas, rank, alpha, lote, acumulação, otimizador e agenda no **Avançado**.
-5. Compare checkpoints com os mesmos prompts e sementes. Marque favoritos, reteste com outra semente ou retome uma grade incompleta.
+1. In **Settings**, choose the model family, calibrate the resolution and configure the vision service.
+2. In **Media**, import files, search supported sites or extract video frames.
+3. In **Review**, inspect thumbnails, adjust crops and edit tags and captions. Run actions on a selection or across the project, then approve the samples for training.
+4. In **Training and testing**, choose **Automatic** or adjust epochs, rank, alpha, batch size, gradient accumulation, optimizer and learning-rate schedule in **Advanced** mode.
+5. Compare checkpoints using the same prompts and seeds. Mark favorites, retest with another seed or resume an incomplete grid.
 
-## Modelos
+The app offers Portuguese, English, Spanish and Simplified Chinese. Translation coverage is still partial.
 
-| Uso | Como escolher |
+## Model choices
+
+| Purpose | Available choices |
 |---|---|
-| **Treinamento** | Krea2 usa a base Raw, Anima usa Anima Base e Illustrious usa Illustrious XL v0.1. O perfil fixa os arquivos de treino e o assistente verifica os pesos de distribuição pelo hash do manifesto. |
-| **Visão e captions** | Instale o conjunto GGUF padrão, escolha um GGUF visual e seu projetor local ou forneça as duas URLs diretas do Hugging Face. A configuração também oferece servidores de visão já instalados. |
-| **Teste do LoRA** | Use a base padrão da família ou selecione um arquivo compatível em **Testar e comparar → Escolher base de teste**. O assistente pode baixar esse arquivo por URL. A comparação registra a escolha e a reutiliza nas retomadas e nos retestes. |
+| **Training** | Krea 2 uses the Raw base, Anima uses Anima Base, and Illustrious uses Illustrious XL v0.1. Training profiles fix the model files, and the installer verifies the distributed weights against the manifest hashes. |
+| **Vision and captions** | Install the default GGUF pair, select a local vision GGUF and its matching projector, or provide direct Hugging Face URLs for both files. You can also configure an existing vision service. |
+| **LoRA testing** | Use the family's default base or select a compatible file through **Test and compare → Choose test base**. The component wizard can download a custom test base by URL. Each comparison records its selected base for later resumes and retests. |
 
-## Outras ferramentas
+## More tools
 
-- **Dataset** · Importação de projetos, banco, manifesto e arquivos com TXT adjacente. A grade permite seleção múltipla, aprovação e edição em lote.
-- **Captions** · Prompts personalizados, geração e melhoria de descrições a partir da imagem, das tags e do texto editado.
-- **Mesclagem** · Combine dois ou mais LoRAs compatíveis, ajuste os pesos individualmente e grave um novo arquivo.
-- **Interface** · Tema claro ou escuro, tamanho da fonte e seleção de português, inglês, espanhol ou chinês simplificado. A cobertura de tradução ainda é parcial.
+- **Dataset import** · Import projects, databases, manifests and media with adjacent TXT files. Review thumbnails with multiple selection, approval and batch actions.
+- **Caption prompts** · Create named prompts for vision analysis and edit captions before training.
+- **LoRA merging** · Combine two or more compatible LoRAs, adjust their individual weights and save a new file.
+- **Appearance** · Choose a light or dark theme and adjust the font size.
 
-## Próximas versões
+## Upcoming updates
 
-| Prioridade | Entrega planejada |
+We plan to build on the guided workflow with the following features. These are roadmap items, with release dates to be announced.
+
+| Planned feature | What it will help you do |
 |---|---|
-| Instalação | Validar do zero em máquinas Windows e Linux com GPU e publicar a matriz de driver, VRAM e famílias exercitadas. |
-| Escolha de modelos | Catálogo de bases de teste com arquitetura e requisitos visíveis antes do download. |
-| Comparação | Visualização ampliada lado a lado entre checkpoints e navegação entre sementes. |
-| Idiomas | Completar mensagens de execução e diálogos nos quatro idiomas. |
+| **Expanded checkpoint comparator** | Inspect two checkpoints side by side with synchronized zoom, switch between seeds and compare LoRA strengths. |
+| **More complete batch tag editor** | Find and replace tags, remove tags across a selection, standardize terms and undo batch edits. |
+| **Goal-based preparation** | Choose a training goal such as style, character, object or clothing, then receive captioning guidance and suggested tests tailored to that goal. |
+| **More search and download sources** | Collect media from additional supported sites through the existing search, download and review workflow. |
 
-Encontrou um problema? Informe o sistema, a GPU, a família de modelo e a etapa em que ocorreu. Remova chaves de API e caminhos pessoais antes de anexar logs. [Abrir uma issue](https://github.com/GabrielRLemes/HydraTrainStudio/issues)
+We also plan to validate clean installations on Windows and Linux GPUs, expand test-model compatibility information and complete translation coverage.
 
-O código original usa a [licença MIT](LICENSE). Os modelos e motores são baixados de seus respectivos projetos. [Componentes e créditos](THIRD_PARTY.md) · [Construir uma release](docs/PUBLICAR.md)
+## Feedback and contributing
+
+Tell us your operating system, GPU, model family and the step where an issue occurred. Remove API keys and personal paths before attaching logs. Feature suggestions and reports from real training projects are welcome. [Open an issue](https://github.com/GabrielRLemes/HydraTrainStudio/issues)
+
+Original code is released under the [MIT license](LICENSE). Models and training engines are downloaded from their respective projects and retain their own terms. [Third-party components and credits](THIRD_PARTY.md) · [Release build instructions, in Portuguese](docs/PUBLICAR.md)
