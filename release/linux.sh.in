@@ -17,4 +17,13 @@ fi
 printf '%s  %s\n' "$sha" "$archive" | sha256sum -c -
 unzip -oq "$archive" -d "$dest"
 chmod +x "$dest/abrir-linux.sh"
+menu="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+mkdir -p "$menu"
+python3 - "$dest" "$menu/hydratrainstudio.desktop" <<'PY'
+from pathlib import Path
+import sys
+root=Path(sys.argv[1])
+command=str(root/"abrir-linux.sh").replace("\\","\\\\").replace('"','\\"').replace('%','%%')
+Path(sys.argv[2]).write_text('[Desktop Entry]\nType=Application\nName=HydraTrainStudio\nExec=bash "'+command+'"\nIcon='+str(root/"HydraTrainStudio_Assets/branding/hydra_symbol_128.png")+'\nTerminal=true\nCategories=Graphics;\n',encoding="utf8")
+PY
 bash "$dest/abrir-linux.sh"

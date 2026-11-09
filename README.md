@@ -1,7 +1,7 @@
 <div align="center">
   <img src="HydraTrainStudio_Assets/branding/hydra_lockup_compact.png" width="420" alt="HydraTrainStudio">
   <p>Da primeira imagem à comparação dos checkpoints de um LoRA, em um aplicativo local.</p>
-  <p><a href="https://github.com/GabrielRLemes/HydraTrainStudio/releases/latest"><b>Baixar para Windows ou Linux</b></a> · <a href="#primeiro-projeto">Primeiro projeto</a> · <a href="#próximas-versões">Próximas versões</a></p>
+  <p><a href="https://github.com/GabrielRLemes/HydraTrainStudio/releases"><b>Baixar para Windows ou Linux</b></a> · <a href="#primeiro-projeto">Primeiro projeto</a> · <a href="#próximas-versões">Próximas versões</a></p>
 </div>
 
 ![Tela inicial do HydraTrainStudio](docs/inicio.png)
@@ -10,8 +10,8 @@
 
 | Plataforma | Primeiro acesso | Próximas aberturas |
 |---|---|---|
-| Windows x64 | Na release, baixe e execute **HydraTrainStudio-Windows.exe**. | Abra **HydraTrainStudio.exe** em `%LOCALAPPDATA%\HydraTrainStudio`. |
-| Linux x86-64 · experimental | Baixe **HydraTrainStudio-Linux.sh** e execute `bash HydraTrainStudio-Linux.sh` na pasta do download. | Execute `bash "${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio/abrir-linux.sh"`. |
+| Windows x64 | Na release, baixe e execute **HydraTrainStudio-Windows.exe**. | Use o menu Iniciar ou abra **HydraTrainStudio.exe** em `%LOCALAPPDATA%\HydraTrainStudio`. |
+| Linux x86-64 · experimental | Baixe **HydraTrainStudio-Linux.sh** e execute `bash HydraTrainStudio-Linux.sh` na pasta do download. | Use o menu de aplicativos ou execute `bash "${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio/abrir-linux.sh"`. |
 
 O launcher baixa o pacote da versão, verifica o SHA-256, instala o código da interface e dos motores de integração e abre o aplicativo. Na primeira abertura, o assistente oferece os componentes locais. Marque as famílias desejadas, **Caption** para visão local e **ComfyUI** para gerar testes. Você pode voltar ao assistente por **Configurações → Componentes**.
 

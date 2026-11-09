@@ -34,7 +34,14 @@ internal static class Setup {
                         entry.ExtractToFile(dest, true);
                     }
             }
-            Process.Start(Path.Combine(root,"HydraTrainStudio.exe"));
+            string launcher = Path.Combine(root,"HydraTrainStudio.exe");
+            var shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
+            var link = shell.GetType().InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, null, shell,
+                new object[]{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),"HydraTrainStudio.lnk")});
+            link.GetType().InvokeMember("TargetPath",System.Reflection.BindingFlags.SetProperty,null,link,new object[]{launcher});
+            link.GetType().InvokeMember("WorkingDirectory",System.Reflection.BindingFlags.SetProperty,null,link,new object[]{root});
+            link.GetType().InvokeMember("Save",System.Reflection.BindingFlags.InvokeMethod,null,link,null);
+            Process.Start(launcher);
         } catch(Exception e) { MessageBox.Show(e.Message,"HydraTrainStudio");Environment.ExitCode=1; }
         finally { if(temp != null) File.Delete(temp); }
     }

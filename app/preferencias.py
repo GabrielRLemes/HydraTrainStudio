@@ -94,7 +94,11 @@ class Preferences:
                              tema=self.theme.get(),fonte=self.font_size.get(),prompts=self.prompts,perfil_prompt=self.profile.get())
         if not self.locked_accounts:
             self.secrets.update({k:getattr(self,k).get() for k in CREDENTIALS})
-            try:self.settings["contas"]=protect(json.dumps(self.secrets,ensure_ascii=False))
+            # A fresh Linux installation needs no keyring until the user saves a credential.
+            has_keys=any(value for key,value in self.secrets.items() if key!="ia") or any(self.secrets.get("ia",{}).values())
+            try:
+                if has_keys or self.settings.get("contas"):
+                    self.settings["contas"]=protect(json.dumps(self.secrets,ensure_ascii=False))
             except ValueError:self.status.set("Chaveiro indisponível. Credenciais somente nesta sessão.")
         write_json(FILE,self.settings)
     def reset_accounts(self):

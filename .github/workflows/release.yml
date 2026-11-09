@@ -13,4 +13,7 @@ jobs:
       - shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes --title "HydraTrainStudio $GITHUB_REF_NAME"
+        run: |
+          flags=()
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag "${flags[@]}" --notes-file release/NOTAS.md --title "HydraTrainStudio $GITHUB_REF_NAME"

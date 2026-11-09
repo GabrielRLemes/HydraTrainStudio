@@ -83,9 +83,8 @@ def install_env(dest,torch,vision,req,extra):
 
 def wanted(asset,choices):
     n=asset["name"]
-    if not WINDOWS and n.endswith(".zip"):return False
+    if n.startswith("uv-") or (not WINDOWS and n.endswith(".zip")):return False
     if n.endswith(".gguf") or "llama" in n:return "Caption" in choices
-    if n.startswith("uv-"):return False
     if "krea2" in n or "qwen3vl_4b" in n:return "Krea2" in choices
     if "anima-" in n or "qwen_3_06b" in n:return "Anima" in choices
     if n.startswith("vae/"):return "Anima" in choices or "Krea2" in choices
@@ -94,6 +93,7 @@ def wanted(asset,choices):
 def reusable(a,cfg):
     n=a["name"]
     if n.endswith(".gguf"):
+        if cfg.get("llm_download"):return True
         key="projetor" if "mmproj" in n else "modelo_caption"
         return Path(cfg.get(key,"")).is_file()
     if n.endswith(".zip"):
