@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo='@REPO@'
+tag='@TAG@'
+sha='@SHA@'
+payload=HydraTrainStudio-app.zip
+here="$(cd "$(dirname "$0")" && pwd)"
+dest="${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio"
+mkdir -p "$dest"
+tmp="$(mktemp -d)"
+trap 'rm -f "$tmp/$payload"; rmdir "$tmp"' EXIT
+if [[ -f "$here/$payload" ]]; then archive="$here/$payload"; else
+  [[ -n "$repo" ]] || { echo "Coloque $payload ao lado do instalador."; exit 1; }
+  archive="$tmp/$payload"
+  curl -fL --retry 3 "https://github.com/$repo/releases/download/$tag/$payload" -o "$archive"
+fi
+printf '%s  %s\n' "$sha" "$archive" | sha256sum -c -
+unzip -oq "$archive" -d "$dest"
+chmod +x "$dest/abrir-linux.sh"
+bash "$dest/abrir-linux.sh"

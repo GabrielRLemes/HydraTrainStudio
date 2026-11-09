@@ -1,0 +1,41 @@
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Net;
+using System.Security.Cryptography;
+using System.Diagnostics;
+using System.Windows.Forms;
+internal static class Setup {
+    [STAThread] static void Main() {
+        string temp = null;
+        try {
+            string file = "HydraTrainStudio-app.zip";
+            string repo = "@REPO@", tag = "@TAG@";
+            string archive = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file);
+            if (!File.Exists(archive)) {
+                if (repo.Length == 0) throw new IOException("Coloque " + file + " ao lado do instalador.");
+                temp = Path.GetTempFileName();
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                using (var client = new WebClient())
+                    client.DownloadFile("https://github.com/" + repo + "/releases/download/" + tag + "/" + file, temp);
+                archive = temp;
+            }
+            string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HydraTrainStudio");
+            using (var stream = File.OpenRead(archive)) {
+                using (var hash = SHA256.Create())
+                    if (BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","").ToLowerInvariant() != "@SHA@")
+                        throw new IOException("O pacote falhou na verificação SHA-256.");
+                stream.Position = 0;
+                using (var zip = new ZipArchive(stream, ZipArchiveMode.Read))
+                    foreach (var entry in zip.Entries) {
+                        var dest = Path.GetFullPath(Path.Combine(root, entry.FullName));
+                        if (!dest.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new IOException("Caminho inválido.");
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                        entry.ExtractToFile(dest, true);
+                    }
+            }
+            Process.Start(Path.Combine(root,"HydraTrainStudio.exe"));
+        } catch(Exception e) { MessageBox.Show(e.Message,"HydraTrainStudio");Environment.ExitCode=1; }
+        finally { if(temp != null) File.Delete(temp); }
+    }
+}

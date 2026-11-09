@@ -1,0 +1,191 @@
+Português|English|Español|简体中文
+Idioma|Language|Idioma|语言
+Início|Home|Inicio|主页
+Mídias|Media|Multimedia|媒体
+Revisão|Review|Revisión|审核
+Treino e testes|Training and testing|Entrenamiento y pruebas|训练与测试
+Mesclar LoRAs|Merge LoRAs|Fusionar LoRAs|合并 LoRA
+Configuração|Settings|Configuración|设置
+Configurações|Settings|Configuración|设置
+Aparência|Appearance|Apariencia|外观
+Tema|Theme|Tema|主题
+Tamanho da fonte|Font size|Tamaño de fuente|字号
+Projeto|Project|Proyecto|项目
+Abrir|Open|Abrir|打开
+Salvar|Save|Guardar|保存
+Novo|New|Nuevo|新建
+Parar tarefa|Stop task|Detener tarea|停止任务
+Baixar mídias|Download media|Descargar multimedia|下载媒体
+Revisar e captionar|Review and caption|Revisar y describir|审核并添加描述
+Treinar LoRA|Train LoRA|Entrenar LoRA|训练 LoRA
+Ver datasets|View datasets|Ver conjuntos de datos|查看数据集
+Download de imagens e vídeos|Download images and videos|Descargar imágenes y vídeos|下载图片和视频
+Editar imagens e legendas|Edit images and captions|Editar imágenes y descripciones|编辑图片和描述
+Iniciar um treinamento|Start training|Iniciar entrenamiento|开始训练
+Combinar modelos e pesos|Combine models and weights|Combinar modelos y pesos|组合模型和权重
+Consultar o dataset atual|View current dataset|Consultar el conjunto actual|查看当前数据集
+Coleta de mídias, revisão de datasets e treinamento de LoRAs|Media collection, dataset review and LoRA training|Recopilación multimedia, revisión de datos y entrenamiento de LoRAs|媒体采集、数据集审核与 LoRA 训练
+Status do projeto|Project status|Estado del proyecto|项目状态
+Imagens|Images|Imágenes|图片
+Vídeos|Videos|Vídeos|视频
+Frames|Frames|Fotogramas|帧
+Com tags|Tagged|Con etiquetas|已有标签
+Com caption|Captioned|Con descripción|已有描述
+Projeto atual|Current project|Proyecto actual|当前项目
+Atividade atual|Current activity|Actividad actual|当前活动
+Novo projeto|New project|Nuevo proyecto|新建项目
+Abrir projeto|Open project|Abrir proyecto|打开项目
+Índice entre projetos|Project index|Índice de proyectos|项目索引
+Ver LoRAs|View LoRAs|Ver LoRAs|查看 LoRA
+Projeto e preset|Project and preset|Proyecto y preajuste|项目与预设
+IA e prompts|AI and prompts|IA e instrucciones|AI 与提示词
+Fontes e contas|Sources and accounts|Fuentes y cuentas|来源与账户
+Extrator|Frame extractor|Extractor|帧提取器
+Componentes|Components|Componentes|组件
+Download|Download|Descarga|下载
+Extrair frames|Extract frames|Extraer fotogramas|提取帧
+Importar local|Local import|Importación local|本地导入
+Treinar|Train|Entrenar|训练
+Testar e comparar|Test and compare|Probar y comparar|测试与比较
+Revisão do dataset|Dataset review|Revisión del conjunto de datos|数据集审核
+Prévia|Preview|Vista previa|预览
+Resumo do dataset|Dataset summary|Resumen del conjunto|数据集摘要
+Projeto inteiro|Entire project|Proyecto completo|整个项目
+Refazer todas as captions|Regenerate all captions|Regenerar todas las descripciones|重新生成全部描述
+Refazer todas as tags|Regenerate all tags|Regenerar todas las etiquetas|重新生成全部标签
+Aprovar tudo e treinar|Approve all and train|Aprobar todo y entrenar|全部批准并训练
+Aprovar seleção|Approve selection|Aprobar selección|批准所选
+Remover seleção|Remove selection|Eliminar selección|移除所选
+Próximo item pendente|Next pending item|Siguiente elemento pendiente|下一待审项
+Seleção atual|Current selection|Selección actual|当前选择
+Salvar edição|Save edits|Guardar cambios|保存编辑
+Gerar tags|Generate tags|Generar etiquetas|生成标签
+Refazer tags|Regenerate tags|Regenerar etiquetas|重新生成标签
+Gerar caption|Generate caption|Generar descripción|生成描述
+Refazer caption|Regenerate caption|Regenerar descripción|重新生成描述
+Melhorar caption|Improve caption|Mejorar descripción|优化描述
+Copiar texto|Copy text|Copiar texto|复制文本
+Tags (SDXL)|Tags (SDXL)|Etiquetas (SDXL)|标签 (SDXL)
+Descrição (Krea2)|Description (Krea2)|Descripción (Krea2)|描述 (Krea2)
+Centralizar|Center|Centrar|居中
+Escala do recorte|Crop scale|Escala de recorte|裁剪比例
+Ctrl / Shift para selecionar|Ctrl / Shift to select|Ctrl / Shift para seleccionar|按 Ctrl / Shift 多选
+‹ Anterior|‹ Previous|‹ Anterior|‹ 上一项
+Próxima ›|Next ›|Siguiente ›|下一项 ›
+Preferências da interface|Interface preferences|Preferencias de interfaz|界面偏好
+Configurações do treino|Training settings|Configuración del entrenamiento|训练设置
+Preparar dataset e iniciar treino|Prepare dataset and start training|Preparar datos e iniciar entrenamiento|准备数据集并开始训练
+Log de treinamento|Training log|Registro de entrenamiento|训练日志
+Projeto e ferramentas|Project and tools|Proyecto y herramientas|项目与工具
+Revisar dataset|Review dataset|Revisar conjunto de datos|审核数据集
+Nome do LoRA|LoRA name|Nombre del LoRA|LoRA 名称
+Passos (0 = automático)|Steps (0 = automatic)|Pasos (0 = automático)|步数（0 为自动）
+Checkpoint (0 = automático)|Checkpoint interval (0 = automatic)|Intervalo de guardado (0 = automático)|保存间隔（0 为自动）
+Taxa de aprendizado|Learning rate|Tasa de aprendizaje|学习率
+Teste de checkpoints|Checkpoint testing|Prueba de checkpoints|检查点测试
+Escolher treino…|Select training run…|Elegir entrenamiento…|选择训练记录…
+Reabrir comparação…|Reopen comparison…|Reabrir comparación…|重新打开比较…
+Resultados da comparação|Comparison results|Resultados de la comparación|比较结果
+Semente|Seed|Semilla|种子
+Força|Strength|Intensidad|强度
+Gerar|Generate|Generar|生成
+Completar grade|Complete grid|Completar cuadrícula|补全网格
+Retestar favoritas|Retest favorites|Volver a probar favoritas|重新测试收藏项
+Família|Family|Familia|模型系列
+Arquivo|File|Archivo|文件
+Peso|Weight|Peso|权重
+Nome de saída|Output name|Nombre de salida|输出名称
+Configuração da mesclagem|Merge settings|Configuración de fusión|合并设置
+LoRAs selecionados|Selected LoRAs|LoRAs seleccionados|所选 LoRA
+Adicionar LoRAs…|Add LoRAs…|Añadir LoRAs…|添加 LoRA…
+Alterar peso|Change weight|Cambiar peso|修改权重
+Remover da lista|Remove from list|Eliminar de la lista|从列表移除
+Mesclar e salvar|Merge and save|Fusionar y guardar|合并并保存
+Adicione dois ou mais LoRAs da mesma base.|Add two or more LoRAs with the same base.|Añade dos o más LoRAs de la misma base.|添加至少两个基于同一底模的 LoRA。
+Busca|Search|Búsqueda|搜索
+Baixar|Download|Descargar|下载
+Consultar resultados|Check results|Consultar resultados|查询结果
+Baixar e importar arquivos…|Download and import files…|Descargar e importar archivos…|下载并导入文件…
+Resultados da busca|Search results|Resultados de búsqueda|搜索结果
+Fontes de mídia (selecione uma ou várias)|Media sources (select one or more)|Fuentes multimedia (selecciona una o varias)|媒体来源（可多选）
+Tags obrigatórias:|Required tags:|Etiquetas obligatorias:|必需标签：
+Excluir tags (vírgula):|Exclude tags (comma-separated):|Excluir etiquetas (separadas por comas):|排除标签（逗号分隔）：
+Score mínimo e621:|Minimum e621 score:|Puntuación mínima en e621:|e621 最低评分：
+Limite de novos arquivos por site:|New file limit per site:|Límite de archivos nuevos por sitio:|每站点新增文件上限：
+Importação de mídias locais|Import local media|Importación multimedia local|导入本地媒体
+Selecionar imagens, animações ou vídeos|Select images, animations or videos|Seleccionar imágenes, animaciones o vídeos|选择图片、动画或视频
+Selecionar uma pasta|Select folder|Seleccionar carpeta|选择文件夹
+Incluir subpastas|Include subfolders|Incluir subcarpetas|包含子文件夹
+Importar banco ou manifesto…|Import database or manifest…|Importar base de datos o manifiesto…|导入数据库或清单…
+Importar dataset ou projeto…|Import dataset or project…|Importar conjunto de datos o proyecto…|导入数据集或项目…
+Mapear JSON/CSV|Map JSON/CSV|Asignar campos JSON/CSV|映射 JSON/CSV
+Arquivos de vídeo e GIF|Video and GIF files|Archivos de vídeo y GIF|视频与 GIF 文件
+Opções de extração|Extraction options|Opciones de extracción|提取选项
+Importar mídias locais|Import local media|Importar multimedia local|导入本地媒体
+Hardware e preset|Hardware and preset|Hardware y preajuste|硬件与预设
+Calibrar preset|Calibrate preset|Calibrar preajuste|校准预设
+Componentes locais|Local components|Componentes locales|本地组件
+Localizar…|Browse…|Examinar…|浏览…
+Salvar caminhos|Save paths|Guardar rutas|保存路径
+Instalação de componentes…|Install components…|Instalar componentes…|安装组件…
+IA local e serviços externos|Local AI and external services|IA local y servicios externos|本地 AI 与外部服务
+Provedor:|Provider:|Proveedor:|服务提供方：
+Modelo:|Model:|Modelo:|模型：
+Legendas / prompts|Captions / prompts|Descripciones e instrucciones|描述与提示词
+Perfil de caption:|Caption profile:|Perfil de descripción:|描述配置：
+Criar prompt…|Create prompt…|Crear instrucción…|创建提示词…
+Renomear…|Rename…|Cambiar nombre…|重命名…
+Salvar configurações|Save settings|Guardar configuración|保存设置
+Máximo de tokens|Maximum tokens|Máximo de tokens|最大词元数
+Salvar no projeto|Save to project|Guardar en el proyecto|保存到项目
+Contas dos sites|Site accounts|Cuentas de sitios|站点账户
+Redefinir credenciais…|Reset credentials…|Restablecer credenciales…|重置凭据…
+Baixe, importe e extraia imagens e frames|Download, import and extract images and frames|Descarga, importa y extrae imágenes y fotogramas|下载、导入图片并提取帧
+Confira o recorte, as tags e a descrição das imagens.|Review image crops, tags and descriptions.|Revisa el recorte, las etiquetas y las descripciones.|检查图片裁剪、标签与描述。
+Configure o treinamento e compare checkpoints.|Configure training and compare checkpoints.|Configura el entrenamiento y compara checkpoints.|配置训练并比较检查点。
+Combine modelos compatíveis em um novo arquivo.|Combine compatible models into a new file.|Combina modelos compatibles en un archivo nuevo.|将兼容模型合并为新文件。
+Projeto, hardware, serviços de IA e fontes de mídia.|Project, hardware, AI services and media sources.|Proyecto, hardware, servicios de IA y fuentes multimedia.|项目、硬件、AI 服务与媒体来源。
+Tema e tamanho de fonte do aplicativo.|Application theme and font size.|Tema y tamaño de letra de la aplicación.|应用主题与字号。
+Preparar automaticamente após importar|Prepare automatically after import|Preparar automáticamente tras importar|导入后自动准备
+Processar após baixar (desmarque para só originais)|Process after download (clear for originals only)|Procesar tras descargar (desmarca para conservar solo originales)|下载后处理（取消则仅保留原文件）
+Gerar tags se o post não tiver tags|Generate tags for untagged posts|Generar etiquetas si la publicación no tiene|为无标签的帖子生成标签
+Contar todas as páginas quando o site não informar o total|Count all pages if the site omits the total|Contar todas las páginas si el sitio omite el total|网站未提供总数时统计所有页面
+TXT adjacente|Adjacent TXT file|Archivo TXT adjunto|同名 TXT 文件
+Adicione imagens já existentes ao projeto. O programa copia os arquivos para uma área de trabalho e nunca altera os originais.|Add existing images. Files are copied to the workspace and originals are preserved.|Añade imágenes existentes. Se copian al área de trabajo y se conservan los originales.|添加已有图片。文件会复制到工作区，原文件保持不变。
+Usar Think em todas as análises visuais: tags, captions e melhorias (llama.cpp local)|Use reasoning for all visual analyses, tags, captions and rewrites (local llama.cpp)|Usar razonamiento en análisis visuales, etiquetas, descripciones y mejoras (llama.cpp local)|所有视觉分析、标签、描述和润色均使用推理（本地 llama.cpp）
+Testar visão llama.cpp|Test llama.cpp vision|Probar visión de llama.cpp|测试 llama.cpp 视觉功能
+As contas e chaves são salvas para o usuário atual do Windows.|Accounts and keys are saved for the current Windows user.|Las cuentas y claves se guardan para el usuario actual de Windows.|账户和密钥仅为当前 Windows 用户保存。
+Abrir / criar projeto|Open / create project|Abrir / crear proyecto|打开或创建项目
+Backup completo|Full backup|Copia de seguridad completa|完整备份
+Iniciar Qwen local|Start local Qwen|Iniciar Qwen local|启动本地 Qwen
+Opções e extração de frames|Frame extraction and options|Extracción de fotogramas y opciones|帧提取与选项
+Perfil|Profile|Perfil|配置
+Intervalo (ms)|Interval (ms)|Intervalo (ms)|间隔（毫秒）
+Máx. por mídia|Max per media file|Máx. por archivo|每个媒体文件上限
+Máx. por cena|Max per scene|Máx. por escena|每个场景上限
+Sensibilidade|Sensitivity|Sensibilidad|灵敏度
+Lado mínimo (px)|Minimum side (px)|Lado mínimo (px)|最短边（像素）
+Varredura completa|Full scan|Escaneo completo|完整扫描
+Manter semelhantes|Keep similar items|Conservar similares|保留相似项
+Rejeitar seleção|Reject selection|Rechazar selección|拒绝所选
+Conceito|Concept|Concepto|概念
+Variação|Variation|Variación|变体
+Sem palavra de ativação|Without trigger word|Sin palabra de activación|无触发词
+Confirmar enquadramento e legenda|Confirm framing and caption|Confirmar encuadre y descripción|确认构图与描述
+Voltar e ajustar|Go back and adjust|Volver y ajustar|返回调整
+Inspecionar em tamanho real (1:1)|Inspect at actual size (1:1)|Ver a tamaño real (1:1)|按实际大小查看（1:1）
+Automático|Automatic|Automático|自动
+Avançado|Advanced|Avanzado|高级
+Rank do LoRA|LoRA rank|Rango del LoRA|LoRA 秩
+Alpha do LoRA|LoRA alpha|Alfa del LoRA|LoRA Alpha
+Lote por dispositivo|Batch per device|Lote por dispositivo|每设备批量
+Acumulação de gradiente|Gradient accumulation|Acumulación de gradientes|梯度累积
+Otimizador|Optimizer|Optimizador|优化器
+Agenda de aprendizado|Learning rate schedule|Programa de tasa de aprendizaje|学习率调度
+Passos de aquecimento|Warmup steps|Pasos de calentamiento|预热步数
+Norma máxima do gradiente|Maximum gradient norm|Norma máxima del gradiente|最大梯度范数
+Workers de dados|Data loader workers|Procesos de carga de datos|数据加载进程数
+Precisão do arquivo|Save precision|Precisión de guardado|保存精度
+Checkpoint de gradiente|Gradient checkpointing|Checkpointing de gradientes|梯度检查点
+A calibração de memória usa os parâmetros automáticos.|Memory calibration uses automatic settings.|La calibración de memoria usa los ajustes automáticos.|显存校准使用自动参数。
+Épocas (0 = usar passos)|Epochs (0 = use steps)|Épocas (0 = usar pasos)|轮数（0 为使用步数）
