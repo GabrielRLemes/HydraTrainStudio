@@ -42,7 +42,7 @@ def versions(run):
         if sha not in found or final:found[sha]=row
     return sorted(found.values(),key=lambda r:(r["passo"] is None,r["passo"] or 0,r["final"],r["arquivo"]))
 
-def plan(run,prompts,seeds,strength=.85,subset=None,test_model=None):
+def plan(run,prompts,seeds,strength=.85,subset=None,test_model=None,ranking=False):
     run=run.resolve()
     profile=run.relative_to(LORAS.resolve()).parts[0]
     rows=versions(run)
@@ -59,27 +59,37 @@ def plan(run,prompts,seeds,strength=.85,subset=None,test_model=None):
         path=Path(test_model).resolve(strict=True)
         if path.suffix.lower()!=".safetensors":raise ValueError("Selecione uma base .safetensors da mesma família.")
         manifest.update(modelo_teste=str(path),modelo_bytes=path.stat().st_size,modelo_mtime=path.stat().st_mtime_ns)
+    manifest["ranking"]=ranking
+    if ranking:
+        from random import SystemRandom
+        rng=SystemRandom()
+        candidates=list(range(1,len(rows)))
+        manifest["podium_order"]=[rng.sample(candidates,len(candidates)) for _ in prompts]
     write_json(dest/"grade.json",manifest)
+
     return dest
 
 def compare(dest):
     file=dest/"grade.json"
     m=read_json(file)
-    total=len(m["prompts"])*len(m["versoes"])
+    total=len(m["prompts"])*(len(m["versoes"])-int(m.get("ranking",False)))
     SIZE[m["perfil"]]=m["res"]
-    model=m.get("modelo_teste")
-    if model:
+    model=m.get("modelo_teste",m.get("test_model"))
+    if model and "modelo_bytes" in m:
         stat=Path(model).stat()
         if (stat.st_size,stat.st_mtime_ns)!=(m["modelo_bytes"],m["modelo_mtime"]):raise ValueError("A base de teste mudou. Crie uma nova comparação.")
     with server(dest,model,m["perfil"]) as engine:
-        for i,r in enumerate(m["versoes"]):
-            for j,p in enumerate(m["prompts"]):
+        for j,p in enumerate(m["prompts"]):
+            for i,r in enumerate(m["versoes"]):
+                if i==0 and m.get("ranking"):continue
                 key=f"{i}-{j}"
                 if key in m["imagens"] and (dest/m["imagens"][key]).is_file():continue
                 workflow=graph(m["perfil"],r["arquivo"],p,m["forca"] if i else 0,m["sementes"][j],base=Path(model).name if model else None)
                 workflow["10"]["inputs"]["filename_prefix"]=f"linha-{i:02}-prompt-{j+1}"
                 write_json(dest/(key+".json"),workflow)
-                print(f"Gerando {len(m['imagens'])+1}/{total} · passo {r['passo']} · prompt {j+1}",flush=True)
+                if m.get("podium_order"):
+                    print(f"Ranking {j+1}/{len(m['prompts'])} · {len(m['imagens'])+1}/{total}",flush=True)
+                else:print(f"Gerando {len(m['imagens'])+1}/{total} · passo {r['passo']} · prompt {j+1}",flush=True)
                 path=generate(engine,dest,workflow)
                 m=read_json(file)
                 m["imagens"][key]=path.name

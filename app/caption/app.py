@@ -233,14 +233,15 @@ class CaptionCreate(Studio, tk.Tk):
         self.import_out.pack(fill='both', expand=True, pady=14)
 
     def _review_ui(self):
-        pane=ttk.Frame(self.tab_review);pane.pack(fill="both",expand=True)
-        for i,w in enumerate((28,44,28)):pane.columnconfigure(i,weight=w,uniform="review")
-        pane.rowconfigure(0,weight=1)
-        left=ttk.LabelFrame(pane,text="Imagens",padding=8)
-        right=ttk.LabelFrame(pane,text="Prévia",padding=8)
-        summary=ttk.LabelFrame(pane,text="Resumo do dataset",padding=12)
-        for i,block in enumerate((left,right,summary)):
-            block.grid(row=0,column=i,sticky="nsew",padx=4)
+        pane=tk.PanedWindow(self.tab_review,orient="horizontal",sashwidth=7,showhandle=True,
+                            sashrelief="raised",borderwidth=0,background=ttk.Style().lookup("TFrame","background"))
+        pane.pack(fill="both",expand=True)
+        left=ttk.LabelFrame(pane,text="Imagens",padding=5)
+        right=ttk.LabelFrame(pane,text="Prévia e recorte",padding=5)
+        summary=ttk.LabelFrame(pane,text="Resumo do dataset",padding=6)
+        pane.add(left,width=205,minsize=115,stretch="never")
+        pane.add(right,width=450,minsize=220,stretch="always")
+        pane.add(summary,width=230,minsize=110,stretch="never")
         self.review_summary=tk.StringVar()
         ttk.Label(summary,textvariable=self.review_summary,justify="left",wraplength=220).pack(anchor="w",pady=(0,12))
         ttk.Label(left,text="Ctrl / Shift para selecionar").pack(anchor="w",pady=3)
@@ -259,8 +260,13 @@ class CaptionCreate(Studio, tk.Tk):
                           ("Refazer todas as tags",lambda:self.redo_project("tags")),
                           ("Aprovar tudo e treinar",self.approve_and_train)):
             ttk.Button(project_actions,text=label,command=cmd).pack(fill="x",pady=1)
-        ttk.Label(right, textvariable=self.info, wraplength=430, font=('Segoe UI',10,'bold')).pack(anchor='w', pady=(0,6))
-        self.canvas = tk.Canvas(right, bg='#11131E', width=1,height=265, highlightthickness=0, cursor='crosshair')
+        self.short_info=tk.StringVar()
+        def compact_info(*_):
+            line=self.info.get().split("\n",1)[0]
+            self.short_info.set(line if len(line)<57 else line[:19]+"…"+line[-34:])
+        self.info.trace_add("write",compact_info);compact_info()
+        ttk.Button(right,textvariable=self.short_info,command=lambda:messagebox.showinfo("Detalhes da imagem",self.info.get()),padding=(2,1)).pack(fill="x")
+        self.canvas = tk.Canvas(right, bg='#11131E', width=1,height=330, highlightthickness=0, cursor='crosshair')
         self.canvas.pack(fill='both', expand=True)
         self.canvas.bind('<Configure>', lambda _:self._draw())
         self.canvas.bind('<Button-1>', self._crop_click)
@@ -270,6 +276,8 @@ class CaptionCreate(Studio, tk.Tk):
         ttk.Label(r, text='Escala do recorte').pack(side='left')
         ttk.Scale(r, from_=0.25, to=1.0, variable=self.crop_scale, command=self._crop_scale_change).pack(side='left', fill='x', expand=True, padx=10)
         ttk.Button(r, text='Centralizar', command=self._crop_center).pack(side='left')
+        from regioes import edit_regions
+        ttk.Button(r,text="Regiões da caption",command=lambda:edit_regions(self)).pack(side="left")
         editor=ttk.Notebook(right);editor.pack(fill="x",pady=5)
         a=ttk.Frame(editor);b=ttk.Frame(editor)
         editor.add(a,text="Tags (SDXL)");editor.add(b,text="Descrição (Krea2)")
@@ -328,6 +336,12 @@ class CaptionCreate(Studio, tk.Tk):
         ttk.Label(r, text='Perfil de caption:', width=20).pack(side='left')
         p = ttk.Combobox(r, values=PROFILE_ORDER, textvariable=self.profile, state='readonly', width=32)
         self.prompt_box=p;p.pack(side="left");p.bind("<<ComboboxSelected>>",self.show_prompt)
+        r=self.row(profiles)
+        ttk.Label(r,text="Modelo de visão do perfil",width=22).pack(side="left")
+        self.vision_choice=tk.StringVar(value="Padrão")
+        choices=ttk.Combobox(r,textvariable=self.vision_choice,values=("Padrão","JoyCaption Beta One"),state="readonly")
+        choices.pack(side="left")
+        choices.bind("<<ComboboxSelected>>",self.bind_vision)
         self.prompt=tk.Text(profiles,height=6,wrap="word",undo=True);self.prompt.pack(fill="x",pady=5)
         self.prompt.bind("<<Modified>>",self.edit_prompt)
         r=self.row(profiles)
@@ -522,7 +536,7 @@ class CaptionCreate(Studio, tk.Tk):
         for key,(label,bar) in self.meters.items():
             if key=="work":
                 value=100 if complete else min(99,100*done/total) if total else 0
-                caption=f"{int(value)}% · {title}" if total or complete else title
+                caption=f"Tarefa {int(value)}%" if total or complete else "Tarefa · …" if active else "Tarefa · —"
                 pulse=active and not total
             else:
                 name,current,limit,ended=rows[key]
@@ -530,9 +544,10 @@ class CaptionCreate(Studio, tk.Tk):
                 amount=f"{current/1048576:.1f} MiB" if key=="download" else ""
                 state=f"{int(value)}%" if limit or ended else amount
                 lane={"download":"Download","extract":"Extração","tags":"Tags","caption":"Descrições"}[key]
-                caption=f"{lane} {state} · {name}"
+                caption=f"{lane} {int(value)}%" if limit or ended else f"{lane} · {amount or ('…' if active and name!='Aguardando' else '—')}"
                 pulse=active and name!="Aguardando" and "interrompido" not in name and not limit and not ended
-            label.configure(text=caption)
+            lane_title,space,detail=caption.partition(" ")
+            label.configure(text=getattr(self,"ui_text",str)(lane_title)+space+detail)
             mode="indeterminate" if pulse else "determinate"
             if str(bar.cget("mode"))!=mode:
                 bar.stop()
@@ -569,7 +584,7 @@ class CaptionCreate(Studio, tk.Tk):
                 self.project.frame_received=lambda key:None
                 result=f"Concluído · {faults} falhas de IA" if faults else "Concluído"
                 self.progress.end(success,result if success else "Interrompido")
-                self.events.put(("finish",success,on_success))
+                self.events.put(("finish",success,on_success,result))
         if not editable:
             self.tags_text.configure(state="disabled")
             self.cap_text.configure(state="disabled")
@@ -921,6 +936,7 @@ class CaptionCreate(Studio, tk.Tk):
                     if key and self.tree.exists(key):
                         self.tree.selection_set([k for k in keep_selection if self.tree.exists(k)] or [key]);self.tree.focus(key)
                         self._select()
+                    if args[0]:self.status.set(args[2] if len(args)>2 else "Concluído")
                     if len(args)>1 and args[0] and not self.stop.is_set() and args[1]:args[1]()
                     if hasattr(self,"complete_media"):self.complete_media(bool(args and args[0]))
         finally:

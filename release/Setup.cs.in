@@ -6,13 +6,18 @@ using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Windows.Forms;
 internal static class Setup {
+    static bool MatchesPackage(string path) {
+        using (var input = File.OpenRead(path))
+        using (var hash = SHA256.Create())
+            return BitConverter.ToString(hash.ComputeHash(input)).Replace("-","").ToLowerInvariant() == "@SHA@";
+    }
     [STAThread] static void Main() {
         string temp = null;
         try {
             string file = "HydraTrainStudio-app.zip";
             string repo = "@REPO@", tag = "@TAG@";
             string archive = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file);
-            if (!File.Exists(archive)) {
+            if (!File.Exists(archive) || (repo.Length != 0 && !MatchesPackage(archive))) {
                 if (repo.Length == 0) throw new IOException("Coloque " + file + " ao lado do instalador.");
                 temp = Path.GetTempFileName();
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;

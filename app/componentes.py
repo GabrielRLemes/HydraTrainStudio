@@ -84,6 +84,8 @@ def install_env(dest,torch,vision,req,extra):
 def wanted(asset,choices):
     n=asset["name"]
     if n.startswith("uv-") or (not WINDOWS and n.endswith(".zip")):return False
+    if n.startswith("joycaption/"):return "JoyCaption" in choices
+    if n.endswith(".zip") and "JoyCaption" in choices:return True
     if n.endswith(".gguf") or "llama" in n:return "Caption" in choices
     if "krea2" in n or "qwen3vl_4b" in n:return "Krea2" in choices
     if "anima-" in n or "qwen_3_06b" in n:return "Anima" in choices
@@ -92,6 +94,7 @@ def wanted(asset,choices):
 
 def reusable(a,cfg):
     n=a["name"]
+    if n.startswith("joycaption/"):return False  # fetch verifies existing weights too
     if n.endswith(".gguf"):
         if cfg.get("llm_download"):return True
         key="projetor" if "mmproj" in n else "modelo_caption"
@@ -139,6 +142,9 @@ def install(choices):
     for a in ASSETS:
         if not wanted(a,choices) or reusable(a,cfg):continue
         n=a["name"]
+        if n.startswith("joycaption/"):
+            fetch(a["url"],COMP/n,a["sha"])
+            continue
         if n.endswith(".gguf") and cfg.get("llm_download"):continue
         if n.endswith(".gguf"):
             dest=fetch(a["url"],COMP/"caption"/n,a["sha"])
@@ -153,7 +159,7 @@ def install(choices):
                     with z.open(item) as src,output.open("wb") as dst:shutil.copyfileobj(src,dst)
         else:
             fetch(a["url"],COMP/"pesos"/n,a["sha"])
-    if not WINDOWS and "Caption" in choices and not Path(cfg.get("servidor","")).is_file():
+    if not WINDOWS and {"Caption","JoyCaption"}.intersection(choices) and not Path(cfg.get("servidor","")).is_file():
         existing=shutil.which("llama-server")
         if existing:cfg["servidor"]=existing
         else:
@@ -180,7 +186,7 @@ def wizard():
     win=tk.Tk();win.title("HydraTrainer · componentes");win.geometry("770x620")
     cfg=discover();frame=ttk.Frame(win,padding=18);frame.pack(fill="both",expand=True)
     ttk.Label(frame,text="Escolha o que instalar",font=("Segoe UI",16,"bold")).pack(anchor="w")
-    options={k:tk.BooleanVar() for k in (*FAMILIES,"Caption","ComfyUI","Base de teste")}
+    options={k:tk.BooleanVar() for k in (*FAMILIES,"Caption","JoyCaption","ComfyUI","Base de teste")}
     info=tk.StringVar()
     def refresh():
         choices=[k for k,v in options.items() if v.get()]

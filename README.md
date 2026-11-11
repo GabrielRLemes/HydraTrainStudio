@@ -50,11 +50,14 @@ The app offers Portuguese, English, Spanish and Simplified Chinese. Translation 
 |---|---|
 | **Training** | Krea 2 uses the Raw base, Anima uses Anima Base, and Illustrious uses Illustrious XL v0.1. Training profiles fix the model files, and the installer verifies the distributed weights against the manifest hashes. |
 | **Vision and captions** | Install the default GGUF pair, select a local vision GGUF and its matching projector, or provide direct Hugging Face URLs for both files. You can also configure an existing vision service. |
-| **LoRA testing** | Use the family's default base or select a compatible file through **Test and compare → Choose test base**. The component wizard can download a custom test base by URL. Each comparison records its selected base for later resumes and retests. |
+| **LoRA testing** | Use the family's default base or select a compatible file through **Test and compare → Test model**. The component wizard can download a custom test base by URL. Each comparison records its selected base for later resumes and retests. |
 
 ## More tools
 
 - **Dataset import** · Import projects, databases, manifests and media with adjacent TXT files. Review thumbnails with multiple selection, approval and batch actions.
+- **Blind checkpoint ranking** · Compare shuffled images across ten shared-seed rounds. Award 5, 3 and 1 points to your top three. Reopen a comparison to resume voting and reveal the models after the final round.
+- **Region-assisted captions** · Paint and label a region to guide vision. Confirm individual notes to include them in training captions.
+- **JoyCaption Beta One** · Select JoyCaption in Components to install its Q4 vision model and matching projector (5.8 GB). Under AI and prompts, choose a vision model per profile.
 - **Caption prompts** · Create named prompts for vision analysis and edit captions before training.
 - **LoRA merging** · Combine two or more compatible LoRAs, adjust their individual weights and save a new file.
 - **Appearance** · Choose a light or dark theme and adjust the font size.

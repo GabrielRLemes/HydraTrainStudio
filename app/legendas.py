@@ -56,7 +56,7 @@ class Legendas:
                     tags=create_tags(path,it,cfg);value=", ".join(tags)
                 def commit():
                     live=self.project.items[key]
-                    if self.stop.is_set() or self.family.get()!=profile or int(self.resolution.get())!=size or not selected(live) or state(live,profile,size)!=geom or any(live.get(k)!=it.get(k) for k in ("tags","krea","sdxl")):return
+                    if self.stop.is_set() or self.family.get()!=profile or int(self.resolution.get())!=size or not selected(live) or state(live,profile,size)!=geom or any(live.get(k)!=it.get(k) for k in ("tags","krea","sdxl","caption_regions")):return
                     if not value.strip():raise ValueError("O modelo retornou texto vazio.")
                     if live.get(name):
                         live.setdefault("historico_hydra",[]).append({name:live[name],"crop":geom["crop"],"res":size})

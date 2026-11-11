@@ -3,7 +3,7 @@ No site scraping, no access-control bypass. Python 3.10+.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from urllib.parse import urlsplit, urljoin
+from urllib.parse import urlsplit, urljoin, parse_qs
 import re
 import threading
 import time
@@ -199,9 +199,14 @@ def parse_gelbooru(data) -> SearchResult:
 
 
 def parse_rule34(data) -> SearchResult:
-    arr = data.get('post') or [] if isinstance(data, dict) else data
-    if not isinstance(arr, list):
-        arr = [arr] if isinstance(arr, dict) else []
+    if isinstance(data, str) and any(word in data.lower() for word in ("auth", "api key", "api_key", "user id")):
+        raise PermissionError("Rule34 não autenticou a consulta. Confira o user_id e a API key da mesma conta em Configurações → Fontes e contas.")
+    if isinstance(data, dict) and "post" in data and str(data.get("success", True)).lower()!="false":
+        arr=data["post"]
+        if isinstance(arr,dict):arr=[arr]
+    else:arr=data
+    if not isinstance(arr,list) or any(not isinstance(item,dict) for item in arr):
+        raise ValueError("A API do Rule34 respondeu sem uma lista de posts. Não foi possível contar os resultados.")
     result = []
     for item in arr:
         p = _post('Rule34.xxx', item.get('id'), item.get('file_url'),
@@ -332,8 +337,17 @@ class SourceClient:
         if source == 'Rule34.xxx':
             params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1,
                       'limit': 100, 'pid': page-1, 'tags': query}
-            if self.rule_key and self.rule_user_id:
-                params.update({'api_key': self.rule_key, 'user_id': self.rule_user_id})
+            uid,token=self.rule_user_id,self.rule_key
+            for field in (self.rule_user_id,self.rule_key):
+                if field.lstrip("&?").startswith(("api_key=","user_id=")):
+                    parts=parse_qs(field.lstrip("&?"))
+                    uid=parts.get("user_id",[uid])[0].strip()
+                    token=parts.get("api_key",[token])[0].strip()
+            if not uid.isascii() or not uid.isdigit():
+                raise ValueError("Rule34 user ID deve ser o número após user_id=. Você também pode colar o bloco completo em Rule34 API key.")
+            if not token or "=" in token or "&" in token:
+                raise ValueError("Informe a chave do Rule34 ou cole o bloco completo de API Access Credentials.")
+            params.update({"api_key":token,"user_id":uid})
             with self.request('https://api.rule34.xxx/index.php', params) as r:
                 return parse_rule34(r.json())
         raise ValueError('Fonte desconhecida: ' + source)

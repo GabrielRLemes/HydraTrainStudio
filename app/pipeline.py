@@ -65,6 +65,14 @@ class Pipeline(Preferences):
         ttk.Label(head,image=self.assets.image("branding/hydra_wordmark.png",200),style="Header.TLabel").pack(side="left",padx=8)
 
         ttk.Button(head,text="Parar tarefa",command=lambda:self._cancel() if hasattr(self,"stop") else None).pack(side="right")
+        meters=ttk.Frame(head);meters.pack(side="left",fill="x",expand=True,padx=12)
+        self.meters={}
+        for col,(key,title) in enumerate([("work","Tarefa"),("download","Download"),("extract","Frames"),("tags","Tags"),("caption","Caption")]):
+            meters.columnconfigure(col,weight=1,uniform="p")
+            box=ttk.Frame(meters,padding=2);box.grid(row=0,column=col,sticky="ew")
+            lab=ttk.Label(box,text=title,width=5);lab.pack(fill="x")
+            bar=ttk.Progressbar(box,maximum=100);bar.pack(fill="x")
+            self.meters[key]=(lab,bar)
         foot=ttk.Frame(self,height=32,padding=(10,2));foot.pack(side="bottom",fill="x");foot.pack_propagate(False);foot.fixed_layout=True
         self.workspace_text=tk.StringVar(value=str(self.startup_root))
         self.hardware_short=tk.StringVar()
@@ -78,7 +86,6 @@ class Pipeline(Preferences):
         self.tab_review=page(self.tabs,"Revisão")
         self.training_tab=page(self.tabs,"Treino e testes")
         self.merge_tab=page(self.tabs,"Mesclar LoRAs")
-        self.general_tab=page(self.tabs,"Aparência")
         home(self);self.tabs.navigation()
         self.tabs.select(self.home_page)
         apply_style(self)
@@ -89,6 +96,7 @@ class Pipeline(Preferences):
         self.accounts=scrolling(page(self.options_book,"Fontes e contas"),860)
         self.extract_settings=scrolling(page(self.options_book,"Extrator"),860)
         self.component_panel=scrolling(page(self.options_book,"Componentes"),860)
+        self.general_tab=page(self.options_book,"Aparência")
         self.media_book=ttk.Notebook(self.media_tab);self.media_book.pack(fill="both",expand=True)
         self.tab_search=scrolling(page(self.media_book,"Download"))
         frames_page=page(self.media_book,"Extrair frames")
@@ -97,14 +105,6 @@ class Pipeline(Preferences):
         ttk.Button(self.extract_settings,text="Opções e extração de frames",command=lambda:(self.tabs.select(self.media_tab),self.media_book.select(frames_page))).pack(anchor="w",padx=16,pady=16)
         self.train_book=ttk.Notebook(self.training_tab);self.train_book.pack(fill="both",expand=True)
         self.tab_train=page(self.train_book,"Treinar");self.tab_gallery=page(self.train_book,"Testar e comparar")
-        meters=ttk.Frame(self.tab_review);meters.pack(fill="x",pady=(2,5))
-        self.meters={}
-        for col,(key,title) in enumerate([("work","Tarefa"),("download","Download"),("extract","Frames"),("tags","Tags"),("caption","Caption")]):
-            meters.columnconfigure(col,weight=1,uniform="p")
-            box=ttk.Frame(meters,padding=2);box.grid(row=0,column=col,sticky="ew")
-            lab=ttk.Label(box,text=title,width=5);lab.pack(fill="x")
-            bar=ttk.Progressbar(box,maximum=100);bar.pack(fill="x")
-            self.meters[key]=(lab,bar)
         for panel in (self.tab_search,self.tab_import,self.tab_frames):
             ttk.Label(panel,textvariable=self.status,style="Secondary.TLabel",wraplength=700).pack(side="bottom",fill="x",pady=4)
         self._search_ui();self._import_ui();self._review_ui();self._export_ui();self.studio_controls()
@@ -117,7 +117,7 @@ class Pipeline(Preferences):
             box=ttk.Combobox(row,textvariable=var,values=choices,state="readonly",width=14);box.pack(side="left")
             box.bind("<<ComboboxSelected>>",lambda _:apply_style(self))
         from idioma import language_control
-        language_control(self,body)
+        language_control(self,self.tabs.sidebar)
         self.watch_preferences();self.load_prompts();apply_style(self)
         wrap_rows(self)
         self.after_import=[]

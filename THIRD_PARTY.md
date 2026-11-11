@@ -13,3 +13,5 @@ A licença MIT da raiz cobre o código original do HydraTrainStudio. O instalado
 | Família Illustrious | [OnomaAIResearch/Illustrious-xl-early-release-v0](https://huggingface.co/OnomaAIResearch/Illustrious-xl-early-release-v0) |
 
 As revisões, URLs e hashes dos pesos padrão estão em [app/arquivos.json](app/arquivos.json). Os pesos são baixados separadamente quando a pessoa seleciona os componentes. Modelos personalizados seguem os termos do repositório escolhido.
+
+JoyCaption Beta One is an optional download. See the [original model card](https://huggingface.co/fancyfeast/llama-joycaption-beta-one-hf-llava) and [GGUF conversion](https://huggingface.co/cinnabrad/llama-joycaption-beta-one-hf-llava-mmproj-gguf) for attribution and terms.

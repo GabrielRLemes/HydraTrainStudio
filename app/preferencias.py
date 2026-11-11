@@ -117,8 +117,12 @@ class Preferences:
         choice=self.settings.get("perfil_prompt")
         if choice not in self.prompt_names:choice=label if has_legacy else PROFILE_DETAILED
         self.profile.set(choice);self.show_prompt()
+    def bind_vision(self,event=None):
+        self.settings.setdefault("vision_profiles",{})[self.profile.get()]=self.vision_choice.get()
+        self.save_preferences()
     def show_prompt(self,event=None):
         name=self.profile.get()
+        self.vision_choice.set(self.settings.get("vision_profiles",{}).get(name,"JoyCaption Beta One" if name=="Krea 2 — Detalhado NSFW" else "Padrão"))
         text=self.prompts[name] if name in self.prompts else get_profile_prompt(name)
         self.prompt.configure(state="normal");self.prompt.delete("1.0","end");self.prompt.insert("1.0",text)
         self.prompt.edit_modified(False)
@@ -139,7 +143,11 @@ class Preferences:
         if name in self.prompt_names or name==PROFILE_CUSTOM:
             messagebox.showerror("Prompts","Esse nome já está em uso.");return
         self.prompts[name]=self.prompt.get("1.0","end-1c")
-        if rename:del self.prompts[old]
+        bindings=self.settings.setdefault("vision_profiles",{})
+        bindings[name]=self.vision_choice.get()
+        if rename:
+            del self.prompts[old]
+            bindings.pop(old,None)
         self.settings["perfil_prompt"]=name
         # Do not recreate a renamed legacy prompt on the next launch.
         if rename and old=="Personalizado · "+self.project.root.name:

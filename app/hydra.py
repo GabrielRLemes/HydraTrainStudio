@@ -39,7 +39,31 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         from studio_shell import startup_logging
         startup_logging(self)
 
+    def free_memory(self):
+        if self.busy:
+            self.status.set("Aguarde a conclusão da tarefa para liberar memória.")
+            return
+        import gc
+        self.release_caption()
+        self.tiles.cache.clear()
+        self.tiles.queue()
+        gc.collect()
+        self.status.set("Limpeza concluída · cache de miniaturas e modelo visual local liberados.")
+    def update_free_vram(self):
+        try:
+            import pynvml as nv
+            if not getattr(self,"vram_handle",None):
+                if not getattr(self,"card",None):
+                    self.after(3000,self.update_free_vram);return
+                nv.nvmlInit()
+                self.vram_handle=nv.nvmlDeviceGetHandleByUUID(self.card["uuid"])
+            mem=nv.nvmlDeviceGetMemoryInfo(self.vram_handle)
+            self.hardware_short.set(f"VRAM livre   {mem.free/2**30:.1f} / {mem.total/2**30:.1f} GiB")
+        except Exception:
+            self.hardware_short.set("VRAM livre indisponível")
+        self.after(3000,self.update_free_vram)
     def _after_ready(self):
+        self.after(500,self.update_free_vram)
         self.title("HydraTrainStudio")
         self.minsize(min(1100,self.winfo_screenwidth()-60),min(720,self.winfo_screenheight()-100))
         self.status.set("Pronto")
@@ -142,7 +166,7 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         self.validated=None
         if cached:
             self.card,self.validated,summary=cached
-            self.hw.set(summary);self.hardware_short.set(f"{self.card['name']} · {self.card['total']} MiB")
+            self.hw.set(summary)
         else:self.hw.set("Verificando hardware…")
         size=self.validated or target
         prev=read_json(self.project.root/"hydra.json",{})
@@ -224,9 +248,20 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
 
     def _ai_config(self,need_caption_profile=True):
         thinking=self.provider.get()=="llama.cpp (local)" and self.vision_think.get()
+        joy=self.vision_choice.get()=="JoyCaption Beta One"
+        if joy and self.provider.get()!="llama.cpp (local)":
+            raise ValueError("Selecione llama.cpp (local) para usar JoyCaption ou escolha Padrão no perfil.")
+        if joy and not self.cfg.get("servidor"):raise ValueError("Configure o executável llama-server para usar JoyCaption.")
+        if joy:thinking=False
         cfg=replace(super()._ai_config(need_caption_profile),thinking=thinking)
-        if cfg.provider=="llama.cpp (local)" and self.cfg.get("servidor") and (self.caption_process or self.api_url.get() in ("http://127.0.0.1:8080","")):
+        if cfg.provider=="llama.cpp (local)" and self.cfg.get("servidor") and (joy or self.caption_process or self.api_url.get() in ("http://127.0.0.1:8080","")):
             cfg._managed_files=dict(self.cfg)
+            if joy:
+                folder=ROOT/"componentes/joycaption"
+                if not folder.is_dir():folder=Path(self.cfg["treino"])/"models/joycaption"
+                if not folder.is_dir():raise ValueError("Instale JoyCaption Beta One em Configurações → Componentes.")
+                cfg._managed_files.update(modelo_caption=str(folder/"Llama-Joycaption-Beta-One-Hf-Llava-Q4_K_M.gguf"),
+                                          projetor=str(folder/"llama-joycaption-beta-one-llava-mmproj-model-f16.gguf"))
             cfg._previous_config=self.previous_caption_config if self.caption_process else (self.api_url.get(),self.model.get())
         return cfg
 
@@ -237,8 +272,9 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
                 files=cfg._managed_files
                 thinking=cfg.thinking
                 if thinking:files={**files,"modelo_caption":files.get("modelo_think",""),"projetor":files.get("projetor_think","")}
+                identity=(files.get("servidor"),files.get("modelo_caption"),files.get("projetor"),thinking)
                 def current():
-                    if self.caption_process and self.caption_process.proc.poll() is None and self.managed_thinking==thinking:
+                    if self.caption_process and self.caption_process.proc.poll() is None and self.managed_identity==identity:
                         return self.caption_process,self.api_url.get()
                     self.release_caption()
                     return None,None
@@ -247,7 +283,7 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
                     proc,url=start_caption(files,DATA/"logs/caption.log",thinking=thinking)
                     def register():
                         self.previous_caption_config=cfg._previous_config
-                        self.caption_process=proc;self.managed_thinking=thinking
+                        self.caption_process=proc;self.managed_identity=identity
                         self.api_url.set(url);self.model.set("hydra-vision")
                     self.on_ui(register)
                 cfg.llama_url=url;cfg.model="hydra-vision"
@@ -355,6 +391,9 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         side=min(self.current_dims)*it.get("crop",{}).get("scale",1)
         transform="ampliação" if side<size else "redução" if side>size else "escala original"
         info=f"Original {self.current_dims[0]} × {self.current_dims[1]} → {size} × {size} · {transform}"
+        from regioes import confirmed_notes
+        notes=confirmed_notes(it)
+        if notes:info+="\n"+self.ui_text("Notas confirmadas")+": "+" · ".join(notes)
         layout_preview(self,dialog,image,info,stamp["legenda"])
         def confirm():
             if stamp!=state(it,self.family.get(),int(self.resolution.get())):

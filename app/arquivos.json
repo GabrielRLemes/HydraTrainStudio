@@ -70,5 +70,17 @@
     "size": 16895034,
     "name": "uv-x86_64-pc-windows-msvc.zip",
     "url": "https://github.com/astral-sh/uv/releases/download/0.12.9/uv-x86_64-pc-windows-msvc.zip"
+  },
+  {
+    "name": "joycaption/Llama-Joycaption-Beta-One-Hf-Llava-Q4_K_M.gguf",
+    "size": 4920735936,
+    "sha": "e8ae55dd07e61d541ab741d6ed63e7810192cea65d7ef8cda69b2a99fb06dc15",
+    "url": "https://huggingface.co/cinnabrad/llama-joycaption-beta-one-hf-llava-mmproj-gguf/resolve/ac4397064c13d6695566ed8e01ffaefe09b0d29e/Llama-Joycaption-Beta-One-Hf-Llava-Q4_K_M.gguf"
+  },
+  {
+    "name": "joycaption/llama-joycaption-beta-one-llava-mmproj-model-f16.gguf",
+    "size": 877771808,
+    "sha": "94002cb5c354c7c9e538e64f37d593db9eceeca2e94573bae6cd3b2bd8bb1952",
+    "url": "https://huggingface.co/cinnabrad/llama-joycaption-beta-one-hf-llava-mmproj-gguf/resolve/ac4397064c13d6695566ed8e01ffaefe09b0d29e/llama-joycaption-beta-one-llava-mmproj-model-f16.gguf"
   }
 ]

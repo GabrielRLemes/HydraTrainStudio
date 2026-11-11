@@ -49,7 +49,7 @@ class StudioBook(ttk.Notebook):
     def navigation(self):
         pages={self.tab(t,"text"):t for t in self.tabs()}
         for title,icon in (("Início","home"),("Mídias","images"),("Revisão","layers"),
-                           ("Treino e testes","play"),("Mesclar LoRAs","merge"),("Configuração","settings"),("Aparência","palette")):
+                           ("Treino e testes","play"),("Mesclar LoRAs","merge"),("Configuração","settings")):
             if title=="Configuração":ttk.Frame(self.sidebar,style="Sidebar.TFrame").pack(fill="both",expand=True)
             target=pages[title]
             image=self.app.assets.icon(icon)
@@ -59,8 +59,32 @@ class StudioBook(ttk.Notebook):
             b.pack(fill="x",pady=4);self.buttons[target]=b;self.icons[target]=icon
         self.changed()
 
+def install_window_icons(app,path):
+    import ctypes
+    from ctypes import wintypes
+    user=ctypes.WinDLL("user32",use_last_error=True)
+    user.GetAncestor.argtypes=(wintypes.HWND,wintypes.UINT)
+    user.GetAncestor.restype=wintypes.HWND
+    user.LoadImageW.argtypes=(wintypes.HINSTANCE,wintypes.LPCWSTR,wintypes.UINT,ctypes.c_int,ctypes.c_int,wintypes.UINT)
+    user.LoadImageW.restype=wintypes.HANDLE
+    user.SendMessageW.argtypes=(wintypes.HWND,wintypes.UINT,wintypes.WPARAM,wintypes.LPARAM)
+    user.SendMessageW.restype=wintypes.LPARAM
+    hwnd=user.GetAncestor(app.winfo_id(),2)
+    if hwnd==getattr(app,"_icon_hwnd",None):return
+    app._icon_hwnd=hwnd
+    for kind,size in ((1,256),(0,user.GetSystemMetrics(49) or 16)):
+        handle=user.LoadImageW(None,str(path),1,size,size,0x10)
+        if handle:user.SendMessageW(hwnd,0x80,kind,handle)
+
 def native_shell(app):
-    try:app.iconbitmap(str(ROOT/"HydraTrainStudio_Assets/app_icon/HydraTrainStudio.ico"))
+    icon=ROOT/"HydraTrainStudio_Assets/app_icon/HydraTrainStudio.ico"
+    try:
+        app.iconbitmap(default=str(icon))
+        if app.tk.call("tk","windowingsystem")=="win32":
+            def mapped(event):
+                if event.widget is app:
+                    app.after_idle(lambda:install_window_icons(app,icon))
+            app.bind("<Map>",mapped,add="+")
     except tk.TclError:log.warning("Ícone de janela indisponível")
     main=ttk.Frame(app);main.pack(fill="both",expand=True)
     side=ttk.Frame(main,width=250,padding=(13,12),style="Sidebar.TFrame");side.pack(side="left",fill="y");side.pack_propagate(False)
@@ -160,6 +184,6 @@ def home(app):
     activity=ttk.LabelFrame(lower,text="Atividade atual",padding=16);activity.grid(row=0,column=1,sticky="nsew",padx=(8,0))
     ttk.Label(activity,textvariable=app.status,wraplength=360).pack(anchor="w")
     row=ttk.Frame(page);row.pack(fill="x",pady=4)
-    for label,cmd in (("Novo projeto",app._reset),("Abrir projeto",app._change_workspace),("Backup",app.backup),("Índice entre projetos",app.choose_library),("Ver LoRAs",app.open_loras)):
+    for label,cmd in (("Novo projeto",app._reset),("Abrir projeto",app._change_workspace),("Backup",app.backup),("Índice entre projetos",app.choose_library),("Ver LoRAs",app.open_loras),("Liberar RAM e VRAM",app.free_memory)):
         ttk.Button(row,text=label,command=lambda fn=cmd:fn() if hasattr(app,"tree") else None).pack(side="left",padx=3)
     log.info("Página inicial montada com grade inicial explícita")

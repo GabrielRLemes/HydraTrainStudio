@@ -189,3 +189,121 @@ Precisão do arquivo|Save precision|Precisión de guardado|保存精度
 Checkpoint de gradiente|Gradient checkpointing|Checkpointing de gradientes|梯度检查点
 A calibração de memória usa os parâmetros automáticos.|Memory calibration uses automatic settings.|La calibración de memoria usa los ajustes automáticos.|显存校准使用自动参数。
 Épocas (0 = usar passos)|Epochs (0 = use steps)|Épocas (0 = usar pasos)|轮数（0 为使用步数）
+Prévia e recorte|Preview and crop|Vista previa y recorte|预览与裁剪
+Liberar RAM e VRAM|Free RAM and VRAM|Liberar RAM y VRAM|释放内存和显存
+Backup|Backup|Copia de seguridad|备份
+Dataset|Dataset|Conjunto de datos|数据集
+Tarefa|Task|Tarea|任务
+Extração|Extraction|Extracción|提取
+Descrições|Captions|Descripciones|描述
+Tags|Tags|Etiquetas|标签
+Caption|Caption|Descripción|描述
+Aguardando|Waiting|En espera|等待中
+Concluído|Completed|Completado|已完成
+Pronto|Ready|Listo|就绪
+Interrompido|Stopped|Interrumpido|已停止
+Carregando projeto…|Loading project…|Cargando proyecto…|正在加载项目…
+VRAM livre indisponível|Free VRAM unavailable|VRAM libre no disponible|无法读取可用显存
+VRAM livre   {0}|Free VRAM   {0}|VRAM libre   {0}|可用显存   {0}
+Imagens de treino   {0}|Training images   {0}|Imágenes de entrenamiento   {0}|训练图像   {0}
+Frames   {0}|Frames   {0}|Fotogramas   {0}|帧   {0}
+Com tags   {0}|Tagged   {0}|Con etiquetas   {0}|已有标签   {0}
+Com caption   {0}|Captioned   {0}|Con descripción   {0}|已有描述   {0}
+Aprovadas   {0}|Approved   {0}|Aprobadas   {0}|已批准   {0}
+Duplicadas   {0}|Duplicates   {0}|Duplicadas   {0}|重复项   {0}
+Resolução alvo   {0}|Target resolution   {0}|Resolución objetivo   {0}|目标分辨率   {0}
+{0} itens · {1} frames · {2} captions · {3} aprovados · {4} pendentes|{0} items · {1} frames · {2} captions · {3} approved · {4} pending|{0} elementos · {1} fotogramas · {2} descripciones · {3} aprobados · {4} pendientes|{0} 项 · {1} 帧 · {2} 条描述 · {3} 已批准 · {4} 待审核
+{0} · {1} imagens · lote {2} · {3} passos · {4} épocas equivalentes · checkpoint a cada {5} passos|{0} · {1} images · batch {2} · {3} steps · {4} equivalent epochs · checkpoint every {5} steps|{0} · {1} imágenes · lote {2} · {3} pasos · {4} épocas equivalentes · checkpoint cada {5} pasos|{0} · {1} 张图像 · 批量 {2} · {3} 步 · 相当于 {4} 轮 · 每 {5} 步保存检查点
+Saída: {0}|Output: {0}|Salida: {0}|输出：{0}
+{0} selecionado(s) · ações de IA usam a seleção|{0} selected · AI actions apply to the selection|{0} seleccionados · las acciones de IA se aplican a la selección|已选 {0} 项 · AI 操作作用于所选项
+Selecione itens para editar em lote.|Select items for batch editing.|Selecciona elementos para editar en lote.|选择要批量编辑的项目。
+Selecione uma imagem para revisar.|Select an image to review.|Selecciona una imagen para revisar.|选择要审核的图像。
+pendente|pending|pendiente|待审核
+aprovado|approved|aprobado|已批准
+duplicado|duplicate|duplicado|重复
+rejeitado|rejected|rechazado|已拒绝
+POSSÍVEL SEMELHANÇA|POSSIBLE MATCH|POSIBLE SIMILITUD|可能相似
+Limpeza concluída · cache de miniaturas e modelo visual local liberados.|Cleanup complete · thumbnail cache and local vision model released.|Limpieza completada · caché de miniaturas y modelo visual local liberados.|清理完成 · 已释放缩略图缓存和本地视觉模型
+Aguarde a conclusão da tarefa para liberar memória.|Wait for the task to finish before freeing memory.|Espera a que termine la tarea para liberar memoria.|请等待任务完成后再释放内存。
+Projeto salvo · {0}|Project saved · {0}|Proyecto guardado · {0}|项目已保存 · {0}
+Concluído · {0} falhas de IA|Completed · {0} AI errors|Completado · {0} errores de IA|已完成 · {0} 个 AI 错误
+Solicitando interrupção...|Stopping…|Deteniendo…|正在停止…
+Gerando legendas no enquadramento atual...|Generating captions for the current crop…|Generando descripciones para el recorte actual…|正在为当前裁剪生成描述…
+Prévia e legenda aprovadas.|Preview and caption approved.|Vista previa y descripción aprobadas.|预览和描述已批准。
+Nenhum item pendente.|No pending items.|No hay elementos pendientes.|没有待审核项。
+O alvo é quadrado. O recorte e a ampliação são conferidos individualmente na revisão.|The target is square. Review each image's crop and enlargement.|El objetivo es cuadrado. Revisa el recorte y la ampliación de cada imagen.|目标为正方形。请逐张检查裁剪和放大效果。
+Selecione uma imagem · arquivos locais ou boorus|Select an image · local files or boorus|Selecciona una imagen · archivos locales o boorus|请选择图像 · 本地文件或图站
+Somente no e621 aplica-se score:>=100 por padrão. Os outros sites usam as próprias tags e filtros.|Only e621 uses score:>=100 by default. Other sites use their own tags and filters.|Solo e621 usa score:>=100 por defecto. Los demás sitios usan sus propias etiquetas y filtros.|只有 e621 默认使用 score:>=100。其他网站使用各自的标签和筛选条件。
+Rule34: conector experimental (pode exigir verificação de idade). A busca usa as APIs oficiais/documentadas.|Rule34: experimental connector (may require age verification). Search uses documented APIs.|Rule34: conector experimental (puede requerir verificación de edad). La búsqueda usa las API documentadas.|Rule34：实验性连接器（可能需要年龄验证）。搜索使用有文档的 API。
+Pré-configurado: {0}|Preconfigured: {0}|Preconfigurado: {0}|预配置：{0}
+Verificando hardware…|Checking hardware…|Comprobando hardware…|正在检查硬件…
+Alvo {0} · validado {1} px|Target {0} · validated {1} px|Objetivo {0} · validado {1} px|目标 {0} · 已验证 {1} 像素
+Alvo {0} · aguardando calibração|Target {0} · awaiting calibration|Objetivo {0} · pendiente de calibración|目标 {0} · 等待校准
+Peso 1 aplica a contribuição inteira.|Weight 1 applies the full contribution.|El peso 1 aplica la contribución completa.|权重为 1 时应用全部贡献。
+Biblioteca de treino|Training library|Biblioteca de entrenamiento|训练库
+Pesos de base|Base weights|Pesos base|底模权重
+Instalação ComfyUI|ComfyUI installation|Instalación de ComfyUI|ComfyUI 安装位置
+Python do ComfyUI|ComfyUI Python|Python de ComfyUI|ComfyUI Python
+Modelo visual GGUF|Vision model GGUF|Modelo visual GGUF|视觉模型 GGUF
+Projetor visual GGUF|Vision projector GGUF|Proyector visual GGUF|视觉投影器 GGUF
+Modelo visual Think GGUF|Reasoning vision model GGUF|Modelo visual de razonamiento GGUF|推理视觉模型 GGUF
+Projetor visual Think GGUF|Reasoning vision projector GGUF|Proyector visual de razonamiento GGUF|推理视觉投影器 GGUF
+Endereço local:|Local address:|Dirección local:|本地地址：
+API key externa:|External API key:|Clave de API externa:|外部 API 密钥：
+Token de estilo:|Style token:|Token de estilo:|风格触发词：
+Sinalizar nitidez abaixo de|Flag sharpness below|Marcar nitidez inferior a|低于此清晰度时标记
+Duração máxima (s)|Maximum duration (s)|Duración máxima (s)|最长时长（秒）
+Máx. original (MB)|Maximum original size (MB)|Tamaño máximo original (MB)|原文件上限（MB）
+FFprobe opcional (caminho)|Optional FFprobe path|Ruta opcional de FFprobe|可选 FFprobe 路径
+Arquivo / frame|File / frame|Archivo / fotograma|文件 / 帧
+Cena|Scene|Escena|场景
+Nitidez|Sharpness|Nitidez|清晰度
+Semelhança|Similarity|Similitud|相似度
+Estado|Status|Estado|状态
+Trocar workspace|Switch workspace|Cambiar espacio de trabajo|切换工作区
+Importar mídias|Import media|Importar multimedia|导入媒体
+Escolha o que instalar|Choose components to install|Elige los componentes que instalar|选择要安装的组件
+Instalar seleção|Install selected components|Instalar selección|安装所选组件
+IA e captions|AI and captions|IA y descripciones|AI 与描述
+Exportação|Export|Exportación|导出
+Buscar boorus|Search boorus|Buscar en boorus|搜索图站
+Revisar e editar|Review and edit|Revisar y editar|审核和编辑
+Treino local de LoRA|Local LoRA training|Entrenamiento local de LoRA|本地 LoRA 训练
+Claro|Light|Claro|浅色
+Escuro|Dark|Oscuro|深色
+Ideal|Ideal|Ideal|理想
+Recomendado|Recommended|Recomendado|推荐
+Experimental|Experimental|Experimental|实验性
+Comparar todas|Compare all|Comparar todas|全部比较
+Teste individual|Individual test|Prueba individual|单独测试
+Ignorar|Ignore|Ignorar|忽略
+{0} · VRAM {1} MiB livres · RAM {2} GiB · disco {3} GiB livres|{0} · VRAM {1} MiB free · RAM {2} GiB · disk {3} GiB free|{0} · VRAM {1} MiB libres · RAM {2} GiB · disco {3} GiB libres|{0} · 显存 {1} MiB 可用 · 内存 {2} GiB · 磁盘可用 {3} GiB
+Motor de treino: localizado|Training engine: found|Motor de entrenamiento: encontrado|训练引擎：已找到
+Motor de treino: ausente|Training engine: missing|Motor de entrenamiento: ausente|训练引擎：缺失
+ComfyUI: localizado|ComfyUI: found|ComfyUI: encontrado|ComfyUI：已找到
+ComfyUI: ausente|ComfyUI: missing|ComfyUI: ausente|ComfyUI：缺失
+Pesos do perfil localizados|Profile weights found|Pesos del perfil encontrados|已找到配置所需权重
+Pesos ausentes: {0}|Missing weights: {0}|Pesos ausentes: {0}|缺少权重：{0}
+Regiões da caption|Caption regions|Regiones de descripción|描述区域
+Borracha|Eraser|Borrador|橡皮擦
+Pincel|Brush|Pincel|画笔
+Nova região|New region|Nueva región|新建区域
+Remover região|Remove region|Eliminar región|删除区域
+Salvar regiões|Save regions|Guardar regiones|保存区域
+Pinte a região e escreva uma nota curta.|Paint a region and add a short note.|Pinta una región y escribe una nota breve.|涂画区域并输入简短说明。
+O recorte mudou. Salvar substituirá as regiões anteriores.|The crop changed. Saving will replace the previous regions.|El recorte cambió. Guardar reemplazará las regiones anteriores.|裁剪已更改。保存将替换之前的区域。
+Marcar favorita|Mark favorite|Marcar favorita|标记收藏
+★ Preferida|★ Favorite|★ Favorita|★ 已收藏
+Informação confirmada por mim · incluir no texto de treino|Confirmed by me · include in training text|Confirmado por mí · incluir en el texto de entrenamiento|我已确认 · 纳入训练文本
+Notas confirmadas|Confirmed notes|Notas confirmadas|已确认的备注
+Modelo de visão do perfil|Profile vision model|Modelo visual del perfil|配置视觉模型
+Modelo de teste…|Test model…|Modelo de prueba…|测试模型…
+Restaurar padrão|Use default|Usar predeterminado|恢复默认
+Padrão do treino|Training default|Predeterminado del entrenamiento|训练默认模型
+Ranking (10 rodadas)|Ranking (10 rounds)|Clasificación (10 rondas)|排名（10轮）
+Votar nesta rodada|Vote for this image|Votar por esta imagen|投票给此图
+Ranking final|Final ranking|Clasificación final|最终排名
+Escreva um prompt em Conceito e clique em Gerar. Em cada uma das 10 rodadas, compare as imagens anônimas e selecione suas favoritas em ordem. O 1º lugar vale 5 pontos, o 2º vale 3, o 3º vale 1 e os demais valem 0. Com dois checkpoints, escolha apenas dois. Clique novamente para remover uma escolha. Confirme o pódio para avançar. Os nomes e o placar aparecem ao final. Empates em pontos dividem a posição.|Enter a prompt in Concept and click Generate. In each of 10 rounds, compare the anonymous images and select your favorites in order. First place earns 5 points, second 3, third 1, and the rest 0. With two checkpoints, pick both. Click a selection again to remove it. Confirm the podium to advance. Names and scores are revealed at the end. Equal scores share a rank.|Escribe un prompt en Concepto y pulsa Generar. En cada una de las 10 rondas, compara las imágenes anónimas y elige tus favoritas en orden. El primer puesto vale 5 puntos, el segundo 3, el tercero 1 y los demás 0. Con dos checkpoints, elige ambos. Pulsa de nuevo para quitar una selección. Confirma el podio para avanzar. Los nombres y los puntos se revelan al final. Los empates comparten puesto.|在概念栏输入提示词，然后点击生成。共十轮，每轮比较匿名图片，并按喜好从高到低依次选择。第一名得五分，第二名三分，第三名一分，其余零分。只有两个检查点时，两张都要选。再次点击可取消选择。确认排名后进入下一轮。所有轮次结束后显示模型名称和总分，同分并列。
+Preparando as imagens da rodada…|Preparing images for this round…|Preparando las imágenes de la ronda…|正在准备本轮图片…
+Confirmar pódio|Confirm podium|Confirmar podio|确认排名
+Selecionar|Select|Seleccionar|选择

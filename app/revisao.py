@@ -1,4 +1,5 @@
 import hashlib
+import re
 import json
 import shutil
 import sqlite3
@@ -9,6 +10,7 @@ from PIL import Image
 from configuracao import DATA, write_json
 from core import render_dataset_image
 from dataset import Dataset
+from regioes import confirmed_notes
 
 FIT="Recortar 1:1"
 def field(profile):
@@ -17,7 +19,16 @@ def selected(it):
     return not it.get("removed") and it.get("status") not in ("rejeitado","duplicado")
 
 def state(it,profile,res):
-    return {"perfil":profile,"res":res,"crop":dict(it.get("crop") or {}),"legenda":(it.get(field(profile)) or "").strip(),
+    text=(it.get(field(profile)) or "").strip()
+    # Keep the editable draft separate so unchecking a region removes its supplement.
+    if text:
+        for note in confirmed_notes(it):
+            phrase=re.escape(note.rstrip(".!?") or note)
+            if re.search(r"(?<!\w)"+phrase+r"(?!\w)",text,re.IGNORECASE):continue
+            if profile=="Krea2":
+                text+=(" " if text.endswith((".","!","?")) else ". ")+note
+            else:text+=", "+note
+    return {"perfil":profile,"res":res,"crop":dict(it.get("crop") or {}),"legenda":text,
             "fonte":it.get("sha256","")}
 
 def ready(it,profile,res):

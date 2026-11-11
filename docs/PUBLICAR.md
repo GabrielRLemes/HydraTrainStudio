@@ -6,7 +6,7 @@ Para gerar os mesmos arquivos localmente em Windows x64, com Python 3.11+ e o co
 
 ```powershell
 $env:GITHUB_REPOSITORY='GabrielRLemes/HydraTrainStudio'
-$env:GITHUB_REF_NAME='v0.1.0-preview.2'
+$env:GITHUB_REF_NAME='v0.1.0-preview.3'
 python release/build.py
 ```
 

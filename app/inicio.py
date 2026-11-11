@@ -6,6 +6,8 @@ import runpy
 from configuracao import DATA
 if __name__=="__main__":
     try:
+        if sys.platform=="win32":
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("HydraTrainStudio.Desktop")
         from studio_shell import log
         log.info("Início HydraTrainStudio")
         runpy.run_path(str(Path(__file__).with_name("hydra.py")),run_name="__main__")

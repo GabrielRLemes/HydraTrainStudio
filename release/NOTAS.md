@@ -1,10 +1,10 @@
-## Escolha um instalador
+## Checkpoint ranking and caption hotfix
 
-- **Windows x64** · Baixe e abra **HydraTrainStudio-Windows.exe**.
-- **Linux x86-64** · Baixe **HydraTrainStudio-Linux.sh** e execute `bash HydraTrainStudio-Linux.sh`. Requer Python 3.11+, Tk, venv, curl e unzip.
+- Compare checkpoints anonymously over ten rounds. A confirmed podium awards 5, 3 and 1 points. Confirmed rounds survive a restart. Instructions are available in Portuguese, English, Spanish and Simplified Chinese.
+- Choose a local test base or keep the family default. Krea2 tests use Turbo by default.
+- Install optional JoyCaption Beta One in Components and associate a vision model with each caption profile. Brush annotations guide captions, and confirmed region notes can supplement training text.
+- Rule34 search accepts the API credential block and reports authentication failures. Review panes resize, progress stays visible across tabs, and the footer reports available VRAM.
 
-O instalador baixa e verifica **HydraTrainStudio-app.zip** automaticamente. Na primeira abertura, escolha os componentes de visão, treino e teste. O ZIP também pode ser colocado ao lado do instalador para instalar o aplicativo sem repetir esse download.
+### Install or update
 
-Krea2, Anima e Illustrious têm bases de treino fixas. A base de teste e o LLM visual são configuráveis. Esta preview teve a interface exercitada em Windows e Ubuntu. A instalação completa com GPU em Linux continua experimental.
-
-[Guia, funções e roteiro](https://github.com/GabrielRLemes/HydraTrainStudio#readme)
+Close HydraTrainStudio and run **HydraTrainStudio-Windows.exe** on Windows x64, or run `bash HydraTrainStudio-Linux.sh` on Linux x86-64. The launcher downloads and verifies the matching application package. Existing projects and models stay in place. Linux GPU installation remains experimental.
