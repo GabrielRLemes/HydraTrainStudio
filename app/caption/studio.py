@@ -14,6 +14,7 @@ from PIL import Image, ImageTk
 from caption_profiles import PROFILE_SDXL
 from core import atomic_json
 from jobs import run_jobs
+from local_files import plain_path, project_path
 from live import tag_received
 from media import Settings, PROFILES
 
@@ -83,14 +84,14 @@ class Studio:
         row=self.row(self.tab_frames)
         for label,status in [("Rejeitar seleção","rejeitado")]:
             ttk.Button(row,text=label,command=lambda st=status:self.frame_status(st)).pack(side="left")
-        self.gallery=ttk.Treeview(self.tab_frames,columns=("pts","scene","sharp","sim","status"),height=10)
+        self.gallery=ttk.Treeview(getattr(self,"frame_results",self.tab_frames),columns=("pts","scene","sharp","sim","status"),height=10)
         for col,label in [("#0","Arquivo / frame"),("pts","PTS (ms)"),("scene","Cena"),("sharp","Nitidez"),("sim","Semelhança"),("status","Estado")]:
             self.gallery.heading(col,text=label)
             self.gallery.column(col,width=260 if col=="#0" else 75)
         self.gallery.pack(fill="both",expand=True)
         self.gallery.bind("<<TreeviewSelect>>",self.compare)
         self.gallery.bind("<Map>",lambda _:self.refresh_gallery() if getattr(self,"gallery_dirty",False) else None)
-        self.previews=ttk.Label(self.tab_frames)
+        self.previews=ttk.Label(getattr(self,"frame_results",self.tab_frames))
         self.previews.pack()
         self.refresh_gallery()
         self.fit_mode.trace_add("write",self.geometry_changed)
@@ -283,9 +284,9 @@ class Studio:
                 with ZipFile(target,"w") as archive:
                     archive.write(dbpath,"catalogo.sqlite")
                     for folder in (self.project.images,self.project.cache):
-                        if self.project.config_path.is_file() and self.project.config_path.name not in archive.namelist():archive.write(self.project.config_path,self.project.config_path.name)
-                        for path in folder.iterdir():
-                            if path.is_file():archive.write(path,path.relative_to(self.project.root))
+                        if plain_path(self.project.config_path).is_file() and self.project.config_path.name not in archive.namelist():archive.write(self.project.config_path,self.project.config_path.name)
+                        for path in plain_path(folder).iterdir():
+                            if plain_path(path).is_file():archive.write(path,path.relative_to(self.project.root))
         self._run("Criando backup",task)
 
     def launch_qwen(self):
@@ -301,16 +302,18 @@ class Studio:
         try:
             media_field,tags_field,cap_field=[s.strip() for s in names.split(",")]
             p=Path(path)
+            if p.stat().st_size > 64 * 1024**2:
+                raise ValueError('Metadados acima de 64 MiB.')
             with p.open(encoding="utf-8-sig",newline="") as f:
                 rows=json.load(f) if p.suffix.lower()==".json" else list(csv.DictReader(f))
             if not isinstance(rows,list):raise ValueError("Esperada uma lista de registros.")
             from sources import Post,canonical_tags
+            files = [project_path(p.parent, row[media_field], nested=True) for row in rows]
             self.sync_options()
             def task():
                 self.progress.plan(len(rows))
-                for row in rows:
+                for row, src in zip(rows, files):
                     if self.stop.is_set():break
-                    src=(p.parent/row[media_field]).resolve()
                     raw=row.get(tags_field) or []
                     tags=canonical_tags(raw.split(",") if isinstance(raw,str) else raw)
                     post=Post("Local",str(src),"","",tags,metadata={"sidecar_caption":row.get(cap_field)})

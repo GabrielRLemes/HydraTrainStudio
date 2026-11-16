@@ -156,12 +156,12 @@ class Preferences:
 
 def apply_style(app):
     dark=app.theme.get()=="Escuro"
-    bg,field,fg,muted,accent=("#161924","#191C28","#F1F1FA","#B6B8CD","#974BDD") if dark else ("#f2f4f6","#ffffff","#172333","#435266","#275e85")
+    bg,field,fg,muted,accent=("#10131b","#181e29","#f1f3f9","#b4c0d2","#8c51cb") if dark else ("#f2f4f6","#ffffff","#172333","#435266","#275e85")
     size=app.font_size.get()
     st=ttk.Style(app)
     st.configure(".",background=bg,foreground=fg,font=("Segoe UI",size),fieldbackground=field)
-    card="#1D2030" if dark else "#ffffff"
-    border="#414456" if dark else "#bec6cf"
+    card="#181d28" if dark else "#ffffff"
+    border="#354054" if dark else "#bec6cf"
     sidebar="#171A28" if dark else "#e7ebef"
     header="#161824" if dark else "#eef1f4"
     st.configure(".",bordercolor=border,lightcolor=border,darkcolor=border)
@@ -177,9 +177,11 @@ def apply_style(app):
     st.configure("TNotebook.Tab",padding=(12,8))
     st.layout("Studio.TNotebook.Tab",[])
     st.configure("Studio.TNotebook",tabmargins=0,borderwidth=0)
-    st.configure("Nav.TButton",padding=(10,11),anchor="w",font=("Segoe UI",11),background=sidebar,borderwidth=0)
-    st.configure("NavActive.TButton",padding=(10,11),anchor="w",font=("Segoe UI",11),borderwidth=0,background="#49357D",foreground="#F0F1F5")
+    st.configure("Nav.TButton",padding=(8,5),anchor="center",font=("Segoe UI",size),background=sidebar,borderwidth=0)
+    st.configure("NavActive.TButton",padding=(8,5),anchor="center",font=("Segoe UI",size),borderwidth=0,background="#49357D",foreground="#F0F1F5")
     st.map("NavActive.TButton",background=[("active","#5E3B9C")])
+    from layout_ui import gradient_style
+    gradient_style(app)
     st.configure("PageTitle.TLabel",font=("Segoe UI",18,"bold"),foreground=fg)
     st.configure("Secondary.TLabel",foreground=muted)
     st.configure("TButton",padding=(9,7),borderwidth=1)
@@ -208,6 +210,7 @@ def apply_style(app):
             widget.configure(style="Card.TLabel" if isinstance(widget,ttk.Label) else "Card.TFrame")
         if isinstance(widget,tk.Text):
             widget.configure(background=field,foreground=fg,insertbackground=fg,selectbackground=accent,font=("Segoe UI",size))
+        elif isinstance(widget,tk.PanedWindow):widget.configure(background=border)
         elif isinstance(widget,tk.Canvas) and widget is not getattr(app,"canvas",None):widget.configure(background=bg)
         elif isinstance(widget,ttk.Label):
             if widget.cget("foreground"):widget.configure(foreground=muted)

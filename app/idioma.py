@@ -94,6 +94,7 @@ def language_control(app,body):
     def change(_):
         write_json(FILE,{"idioma":box.get()});walk(app)
         for _,refresh in mirrors.values():refresh()
+        for button in app.tabs.buttons.values():button.event_generate("<<ResizeRows>>")
         app.draw_progress()
     box.bind("<<ComboboxSelected>>",change)
     app.bind_all("<Map>",lambda event:translate(event.widget) if hasattr(event.widget,"tk") else None,add="+")

@@ -15,9 +15,26 @@ def pack_mask(mask):
     mask.convert("1").save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
+def read_regions(item):
+    guide = item.get("caption_regions") or {}
+    if not isinstance(guide, dict):
+        raise ValueError("Região de caption inválida.")
+    regions = guide.get("regions", [])
+    if not isinstance(regions, list) or len(regions) > LIMIT:
+        raise ValueError("São permitidas até seis regiões por imagem.")
+    for region in regions:
+        if (not isinstance(region, dict) or not isinstance(region.get("note"), str)
+                or len(region["note"]) > 4096 or not isinstance(region.get("mask"), str)
+                or not 0 < len(region["mask"]) <= 64 * 1024):
+            raise ValueError("Região de caption inválida.")
+    return regions
+
+
 def unpack_mask(data):
-    with Image.open(io.BytesIO(base64.b64decode(data))) as image:
-        if image.size != (SIZE, SIZE):
+    if not isinstance(data, str) or not 0 < len(data) <= 64 * 1024:
+        raise ValueError("Máscara inválida.")
+    with Image.open(io.BytesIO(base64.b64decode(data, validate=True)), formats=("PNG",)) as image:
+        if image.size != (SIZE, SIZE) or image.is_animated:
             raise ValueError("Máscara inválida.")
         return image.convert("L")
 
@@ -28,12 +45,12 @@ def geometry(item):
 def confirmed_notes(item):
     guide=item.get("caption_regions") or {}
     if guide.get("crop")!=geometry(item):return []
-    return list(dict.fromkeys(r["note"].strip() for r in guide.get("regions",[])
+    return list(dict.fromkeys(r["note"].strip() for r in read_regions(item)
                               if r.get("confirmed") and r.get("mask") and r.get("note","").strip()))
 
 def caption_guide(path, item, fit):
     guide = item.get("caption_regions") or {}
-    regions = guide.get("regions") or []
+    regions = read_regions(item)
     if not regions or guide.get("crop") != geometry(item) or fit != "Recortar 1:1":
         return ""
     with Image.open(path) as im:
@@ -85,19 +102,23 @@ def edit_regions(app):
     active=saved.get("crop")==stamp
     if saved and not active and not messagebox.askokcancel(tr("Regiões da caption"),tr("O recorte mudou. Salvar substituirá as regiões anteriores."),parent=app):return
     original=render_dataset_image(app.project.path_for(item),int(app.resolution.get()),item.get("crop") or {},"Recortar 1:1").convert("RGB")
-    regions=[(unpack_mask(r["mask"]),r["note"],bool(r.get("confirmed"))) for r in saved.get("regions",[]) if active]
+    regions=[(unpack_mask(r["mask"]),r["note"],bool(r.get("confirmed"))) for r in read_regions(item) if active]
     win=tk.Toplevel(app)
     win.title(tr("Regiões da caption"));win.transient(app)
     win.geometry(f"{min(660,app.winfo_screenwidth()-80)}x{min(770,app.winfo_screenheight()-110)}")
+    win.minsize(min(550,app.winfo_screenwidth()-60),min(430,app.winfo_screenheight()-95))
     win.rowconfigure(1,weight=1);win.columnconfigure(0,weight=1)
     tools=ttk.Frame(win,padding=6);tools.grid(row=0,column=0,sticky="ew")
     erase=tk.BooleanVar(win);radius=tk.IntVar(win,value=12)
-    ttk.Checkbutton(tools,text=tr("Borracha"),variable=erase).pack(side="left")
-    ttk.Label(tools,text=tr("Pincel")).pack(side="left",padx=6)
+    ttk.Checkbutton(tools,image=app.assets.icon("eraser",18),compound="left",text=tr("Borracha"),variable=erase).pack(side="left")
+    ttk.Label(tools,image=app.assets.icon("brush",18),compound="left",text=tr("Pincel")).pack(side="left",padx=6)
     tk.Scale(tools,variable=radius,from_=2,to=42,orient="horizontal").pack(side="left")
-    canvas=tk.Canvas(win,width=1,height=1,background="#171924",highlightthickness=0)
-    canvas.grid(row=1,column=0,sticky="nsew")
-    footer=ttk.Frame(win,padding=8);footer.grid(row=2,column=0,sticky="ew")
+    from layout_ui import split,pane,scrolling
+    editor=split(win,"vertical",grid=dict(row=1,column=0,sticky="nsew"))
+    art=pane(editor,110,445)
+    canvas=tk.Canvas(art,width=1,height=1,background="#171924",highlightthickness=0)
+    canvas.pack(fill="both",expand=True)
+    footer=scrolling(pane(editor,58,125),padding=6)
     footer.columnconfigure(1,weight=1)
     note=tk.StringVar(win)
     confirmed=tk.BooleanVar(win,value=False)
@@ -145,6 +166,8 @@ def edit_regions(app):
             if not mask.getbbox() and not hint:continue
             if not mask.getbbox() or not hint:
                 display(i);messagebox.showinfo(tr("Regiões da caption"),tr("Pinte a região e escreva uma nota curta."),parent=win);return
+            if len(hint) > 4096:
+                display(i);messagebox.showinfo(tr("Regiões da caption"),"Nota acima de 4096 caracteres.",parent=win);return
             region={"mask":pack_mask(mask),"note":hint}
             if is_confirmed:region["confirmed"]=True
             data.append(region)

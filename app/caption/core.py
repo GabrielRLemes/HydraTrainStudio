@@ -16,6 +16,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
+from net_limits import NoRedirectSession, response_json
 from PIL import Image, ImageOps
 
 VERSION = '4.2.0'
@@ -228,13 +229,8 @@ def build_structured_metadata(tags: list[str], rating: str = '', tag_groups: dic
 
 
 def valid_media_url(url: str) -> bool:
-    try:
-        p = urlparse(url)
-        return p.scheme == 'https' and p.hostname is not None and (
-            p.hostname == 'e621.net' or p.hostname.endswith('.e621.net')
-        ) and not p.username and not p.password
-    except ValueError:
-        return False
+    from sources import media_url_ok
+    return media_url_ok(url, "e621")
 
 
 def post_media(post: dict, include_gif: bool = False) -> tuple[str, str] | None:
@@ -254,19 +250,22 @@ def post_media(post: dict, include_gif: bool = False) -> tuple[str, str] | None:
     return None
 
 
-def atomic_json(path: Path, obj: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(path.suffix + '.tmp')
-    with temp.open('w', encoding='utf-8') as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
-    os.replace(temp, path)
-
-
 def atomic_text(path: Path, value: str) -> None:
+    import tempfile
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(path.suffix + '.tmp')
-    temp.write_text(value.rstrip() + '\n', encoding='utf-8')
-    os.replace(temp, path)
+    temp = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, encoding="utf8", delete=False) as stream:
+            temp = Path(stream.name)
+            stream.write(value.rstrip() + "\n")
+        temp.replace(path)
+    finally:
+        if temp is not None:
+            temp.unlink(missing_ok=True)
+
+
+def atomic_json(path: Path, obj: dict) -> None:
+    atomic_text(path, json.dumps(obj, ensure_ascii=False, indent=2))
 
 
 class Workspace:
@@ -353,47 +352,23 @@ class E621Client:
         if not username.strip():
             raise ValueError('Informe seu usuário do e621 para identificar as requisições.')
         self.stop = stop or threading.Event()
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': f'E621LoRAStudio/{VERSION} (by {username.strip()} on e621)',
-            'Accept': 'application/json',
-        })
+        from sources import SourceClient
+        self.client = SourceClient(username, stop=self.stop)
+        self.session = self.client.session
         self.auth = (username.strip(), api_key) if api_key else None
-        self.last_request = 0.0
 
     def wait(self, secs):
         if self.stop.wait(max(0, secs)):
             raise Cancelled()
 
     def get(self, url: str, *, params=None, api=True, stream=False):
-        for attempt in range(5):
-            self.wait(MIN_INTERVAL - (time.monotonic() - self.last_request))
-            self.last_request = time.monotonic()
-            try:
-                result = self.session.get(url, params=params, timeout=(15, 65),
-                                          stream=stream, auth=self.auth if api else None)
-                if result.status_code in (429, 500, 502, 503, 504) and attempt < 4:
-                    delay = result.headers.get('Retry-After')
-                    result.close()
-                    try:
-                        seconds = min(120, max(2, float(delay)))
-                    except (ValueError, TypeError):
-                        seconds = min(60, 3 * 2**attempt)
-                    self.wait(seconds)
-                    continue
-                result.raise_for_status()
-                return result
-            except (requests.Timeout, requests.ConnectionError) as exc:
-                if attempt == 4:
-                    raise RuntimeError(f'Falha de conexão com o e621: {exc}') from exc
-                self.wait(min(60, 3 * 2**attempt))
-            except requests.HTTPError as exc:
-                raise RuntimeError(f'HTTP {exc.response.status_code}: {exc.response.text[:220]}') from exc
-        raise RuntimeError('Falha de rede.')
+        if not valid_media_url(url) or (api and urlparse(url).hostname != "e621.net"):
+            raise ValueError("Endereço e621 inválido.")
+        return self.client.request(url, params=params, stream=stream, auth=self.auth if api else None)
 
     def count(self, query: str) -> int:
         with self.get(f'{API_BASE}/posts/count.json', params={'tags': query}) as response:
-            data = response.json()
+            data = response_json(response)
         for candidate in (data.get('counts'), data):
             if isinstance(candidate, dict):
                 for name in ('posts', 'count'):
@@ -406,7 +381,7 @@ class E621Client:
         if cursor is not None:
             params['page'] = f'b{cursor}'
         with self.get(f'{API_BASE}/posts.json', params=params) as response:
-            data = response.json()
+            data = response_json(response)
         if not isinstance(data, dict) or not isinstance(data.get('posts'), list):
             raise RuntimeError('Resposta de posts inesperada.')
         return data['posts']
@@ -468,28 +443,71 @@ class AIConfig:
     llama_url: str = 'http://127.0.0.1:8080'
     max_tokens: int = 550
     thinking: bool = False
+    approved_endpoint: str = ''
 
 
 
-def llama_server_base(url: str) -> str:
-    """Allow localhost base URL or a complete llama.cpp OpenAI-compatible API URL."""
+def inference_base(url):
+    import ipaddress
     from urllib.parse import urlsplit, urlunsplit
-    raw = url.strip().rstrip('/')
-    if not raw:
-        raise ValueError('Informe o endereço do servidor llama.cpp, como http://127.0.0.1:8080')
+    raw = url.strip()
+    if any(ord(c) < 32 or c == chr(92) for c in raw):
+        raise ValueError("Endereço de IA inválido.")
     p = urlsplit(raw)
-    if p.scheme not in ('http', 'https') or not p.hostname or p.username or p.password or p.query or p.fragment:
-        raise ValueError('Endereço llama.cpp inválido. Use http://127.0.0.1:8080')
+    if p.scheme not in ("http","https") or not p.hostname or p.username is not None or p.password is not None or p.query or p.fragment:
+        raise ValueError("Endereço de IA inválido.")
+    host = p.hostname.lower()
+    if "%" in host:
+        raise ValueError("Endereço de IA inválido.")
+    if host == "localhost":
+        host = "127.0.0.1"
     try:
-        _ = p.port
-    except ValueError as exc:
-        raise ValueError('Porta do llama.cpp inválida.') from exc
-    path = p.path.rstrip('/')
-    for suffix in ('/v1/chat/completions', '/v1/models', '/v1/health', '/health', '/v1'):
-        if path.endswith(suffix):
-            path = path[:-len(suffix)].rstrip('/')
-            break
-    return urlunsplit((p.scheme, p.netloc, path, '', ''))
+        local = ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        local = False
+    if not local and p.scheme != "https":
+        raise ValueError("Servidor de IA externo exige HTTPS.")
+    authority = f"[{host}]" if ":" in host else host
+    if p.port is not None:
+        authority += f":{p.port}"
+    return urlunsplit((p.scheme, authority, p.path.rstrip("/"), "", "")), local
+
+
+def llama_server_base(url):
+    base, _ = inference_base(url)
+    for suffix in ("/v1/chat/completions", "/v1/models", "/v1/health", "/health", "/v1"):
+        if base.endswith(suffix):
+            return base[:-len(suffix)]
+    return base
+
+
+def confirm_inference_endpoint(cfg, ask):
+    if cfg.provider not in ("Ollama (local)", "llama.cpp (local)"):
+        return
+    url = cfg.ollama_url if cfg.provider == "Ollama (local)" else cfg.llama_url
+    base, local = inference_base(url)
+    if not local:
+        if not ask("Provedor externo", f"Enviar imagens, prompts e anotações desta operação para {base}?"):
+            raise ValueError("Envio cancelado.")
+        cfg.approved_endpoint = base
+
+
+def inference_json(method, url, *, loopback=False, **kwargs):
+    with NoRedirectSession() as session:
+        if loopback:
+            session.trust_env = False
+        with session.request(method, url, stream=True, allow_redirects=False, **kwargs) as resp:
+            if 300 <= resp.status_code < 400:
+                raise ValueError("Redirecionamento de IA recusado.")
+            resp.raise_for_status()
+            return response_json(resp)
+
+
+def authorized_base(url, approved_endpoint):
+    base, local = inference_base(url)
+    if not local and base != approved_endpoint:
+        raise ValueError("Confirme o endereço externo antes do envio.")
+    return base, local
 
 
 def llama_multimodal_payload(model: str, prompt: str, b64: str,
@@ -511,12 +529,11 @@ def llama_multimodal_payload(model: str, prompt: str, b64: str,
     return payload
 
 
-def llama_chat(base_url: str, payload: dict, *, timeout: int = 360) -> str:
+def llama_chat(base_url: str, payload: dict, *, timeout: int = 360, approved_endpoint='') -> str:
     try:
-        response = requests.post(llama_server_base(base_url) + '/v1/chat/completions',
-                                 json=payload, timeout=(10, timeout))
-        response.raise_for_status()
-        obj = response.json()
+        base, local = authorized_base(base_url, approved_endpoint)
+        obj = inference_json("POST", llama_server_base(base) + "/v1/chat/completions", loopback=local,
+                             json=payload, timeout=(10, timeout))
         choices = obj.get('choices') or []
         if not choices:
             raise ValueError('O llama.cpp não retornou choices. Confira o console do servidor.')
@@ -545,25 +562,21 @@ def llama_chat(base_url: str, payload: dict, *, timeout: int = 360) -> str:
         raise RuntimeError('O llama.cpp demorou demais para responder; confira o console e o uso de VRAM.') from exc
     except requests.HTTPError as exc:
         status = exc.response.status_code if exc.response is not None else '?'
-        body = exc.response.text[:450] if exc.response is not None else ''
-        raise RuntimeError(f'Erro HTTP {status} no llama.cpp: {body}') from exc
+        raise RuntimeError(f'Erro HTTP {status} no llama.cpp.') from exc
     except (ValueError, requests.exceptions.JSONDecodeError) as exc:
         raise RuntimeError(f'Resposta inválida do llama.cpp: {exc}') from exc
 
 
 def test_llama_vision(cfg: AIConfig) -> str:
     """Health check + synthetic image inference; avoids uploading user images in a test."""
-    base = llama_server_base(cfg.llama_url)
+    endpoint, local = authorized_base(cfg.llama_url, cfg.approved_endpoint)
+    base = llama_server_base(endpoint)
     if not cfg.model.strip():
         raise ValueError('Informe o alias do modelo configurado no .bat.')
     try:
-        health = requests.get(base + '/health', timeout=(5, 15))
-        if health.status_code != 200:
-            raise RuntimeError(f'O servidor está carregando ou indisponível (HTTP {health.status_code}).')
-        health.raise_for_status()
-        models_response = requests.get(base + '/v1/models', timeout=(5, 15))
-        models_response.raise_for_status()
-        model_list = (models_response.json().get('data') or [])
+        inference_json("GET", base + "/health", loopback=local, timeout=(5, 15))
+        models = inference_json("GET", base + "/v1/models", loopback=local, timeout=(5, 15))
+        model_list = models.get("data") or []
     except requests.ConnectionError as exc:
         raise RuntimeError('Servidor llama.cpp offline. Inicie primeiro o .bat do Qwen3-VL na porta 8080.') from exc
     except requests.Timeout as exc:
@@ -587,9 +600,9 @@ def test_llama_vision(cfg: AIConfig) -> str:
         with Image.new('RGB', (224, 224), (238, 23, 35)) as sample:
             sample.save(buf, format='JPEG', quality=92)
         b64 = base64.b64encode(buf.getvalue()).decode('ascii')
-    reply = llama_chat(base, llama_multimodal_payload(
+    reply = llama_chat(endpoint, llama_multimodal_payload(
         cfg.model, 'Look at the attached image. What is its main color? Respond with one English color word.',
-        b64, max_tokens=80, thinking=cfg.thinking), timeout=180)
+        b64, max_tokens=80, thinking=cfg.thinking), timeout=180, approved_endpoint=cfg.approved_endpoint)
     return (f'Servidor online: {base}\n'
             f'Modelo informado: {cfg.model}\n'
             f'Projetor multimodal: {"anunciado" if isinstance(modalities, list) else "não informado pela API"}\n'
@@ -618,37 +631,35 @@ def describe_image(image_path: Path, tags: list[str], cfg: AIConfig,
     b64 = input_jpeg_bytes(image_path)
     if cfg.provider == 'llama.cpp (local)':
         payload=llama_multimodal_payload(cfg.model,prompt,b64,max_tokens=cfg.max_tokens,thinking=cfg.thinking)
-        text=llama_chat(cfg.llama_url,payload)
+        text=llama_chat(cfg.llama_url,payload,approved_endpoint=cfg.approved_endpoint)
     elif cfg.provider == 'Ollama (local)':
-        url = cfg.ollama_url.rstrip('/') + '/api/chat'
-        response = requests.post(url, json={
+        base, local = authorized_base(cfg.ollama_url, cfg.approved_endpoint)
+        obj = inference_json('POST', base + '/api/chat', loopback=local, json={
             'model': cfg.model.strip(),
             'messages': [{'role': 'user', 'content': prompt, 'images': [b64]}],
             'stream': False,
             'options': {'temperature': 0.2, 'num_predict': cfg.max_tokens},
         }, timeout=(15, 420))
-        response.raise_for_status()
-        text = (response.json().get('message') or {}).get('content', '')
+        text = (obj.get('message') or {}).get('content', '')
     elif cfg.provider == 'Google Gemini':
         if not cfg.key:
             raise ValueError('Informe a API key do Google AI Studio.')
         url = ('https://generativelanguage.googleapis.com/v1beta/models/'
                + cfg.model.strip() + ':generateContent')
-        response = requests.post(url, headers={'x-goog-api-key': cfg.key}, json={
+        obj = inference_json('POST', url, headers={'x-goog-api-key': cfg.key}, json={
             'contents': [{'parts': [
                 {'text': prompt},
                 {'inline_data': {'mime_type': 'image/jpeg', 'data': b64}},
             ]}],
             'generationConfig': {'temperature': 0.2, 'maxOutputTokens': cfg.max_tokens},
         }, timeout=(15, 180))
-        response.raise_for_status()
-        candidates = response.json().get('candidates') or []
+        candidates = obj.get('candidates') or []
         parts = ((candidates[0].get('content') or {}).get('parts') or []) if candidates else []
         text = ' '.join(x.get('text', '') for x in parts if 'text' in x)
     elif cfg.provider == 'OpenRouter':
         if not cfg.key:
             raise ValueError('Informe a API key do OpenRouter.')
-        response = requests.post('https://openrouter.ai/api/v1/chat/completions', headers={
+        obj = inference_json('POST','https://openrouter.ai/api/v1/chat/completions', headers={
             'Authorization': 'Bearer ' + cfg.key,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://localhost/',
@@ -662,8 +673,7 @@ def describe_image(image_path: Path, tags: list[str], cfg: AIConfig,
             'temperature': 0.2,
             'max_tokens': cfg.max_tokens,
         }, timeout=(15, 240))
-        response.raise_for_status()
-        choices = response.json().get('choices') or []
+        choices = obj.get('choices') or []
         text = (choices[0].get('message') or {}).get('content', '') if choices else ''
         if isinstance(text, list):
             text = ' '.join(p.get('text', '') for p in text if isinstance(p, dict))

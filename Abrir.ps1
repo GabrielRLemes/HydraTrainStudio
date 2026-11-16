@@ -9,6 +9,13 @@ try {
     $python=Join-Path $venv 'Scripts/pythonw.exe'
     $ready=Join-Path $venv '.interface-pronta'
     if(!(Test-Path -LiteralPath $ready) -or !(Test-Path -LiteralPath $python)){$python=$null}
+    $configPath=Join-Path $PSScriptRoot 'dados/componentes.json'
+    if(!$python -and (Test-Path -LiteralPath $configPath -PathType Leaf)){
+        $saved=(Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json).python_interface
+        if($saved -and $saved -match '^[A-Za-z]:[\\/]' -and [IO.Path]::GetFileName($saved) -eq 'pythonw.exe' -and (Test-Path -LiteralPath $saved -PathType Leaf)){
+            $python=$saved
+        }
+    }
     if(!$python){
         $reply=[Windows.Forms.MessageBox]::Show("Instalar o Python 3.12 e as bibliotecas da interface nesta pasta? Download estimado de 100 a 250 MB. Os modelos sao selecionados separadamente.","HydraTrainer",[Windows.Forms.MessageBoxButtons]::YesNo)
         if($reply -ne 'Yes'){exit 0}
@@ -22,7 +29,7 @@ try {
                 $assets=Get-Content (Join-Path $PSScriptRoot 'app\arquivos.json') -Raw -Encoding utf8 | ConvertFrom-Json
                 $asset=$assets | Where-Object name -eq 'uv-x86_64-pc-windows-msvc.zip'
                 $archive=Join-Path $cache $asset.name
-                & curl.exe -fLsS --retry 4 -o $archive $asset.url
+                & (Join-Path ([Environment]::SystemDirectory) curl.exe) -fLsS --proto "=https" --proto-redir "=https" --retry 4 -o $archive $asset.url
                 if($LASTEXITCODE -ne 0 -or (Get-FileHash $archive -Algorithm SHA256).Hash -ne $asset.sha){throw "Falha ao verificar uv."}
                 Expand-Archive -LiteralPath $archive -DestinationPath $tools -Force
                 $uv=(Get-ChildItem $tools -Recurse -Filter uv.exe -File | Select-Object -First 1).FullName

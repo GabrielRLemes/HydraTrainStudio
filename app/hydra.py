@@ -65,7 +65,7 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
     def _after_ready(self):
         self.after(500,self.update_free_vram)
         self.title("HydraTrainStudio")
-        self.minsize(min(1100,self.winfo_screenwidth()-60),min(720,self.winfo_screenheight()-100))
+        self.minsize(min(800,self.winfo_screenwidth()-40),min(560,self.winfo_screenheight()-90))
         self.status.set("Pronto")
         self.tabs.select(self.home_page)
         self.restore()
@@ -101,9 +101,10 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         ttk.Button(row,text="Importar banco ou manifesto…",command=lambda:self.import_ready(False)).pack(side="left")
         ttk.Button(row,text="Importar dataset ou projeto…",command=lambda:self.import_ready(True)).pack(side="left",padx=5)
         self.name_var=tk.StringVar(value="Meu-LoRA");self.steps=tk.StringVar(value="0");self.interval=tk.StringVar(value="0");self.lr=tk.StringVar(value="0.0001")
-        top=ttk.Frame(self.tab_train);top.pack(fill="x")
-        top.columnconfigure(0,weight=72,uniform="train");top.columnconfigure(1,weight=28,uniform="train")
-        form=ttk.Frame(top);form.grid(row=0,column=0,sticky="nsew",padx=(0,8))
+        from layout_ui import split,pane,scrolling
+        train=split(self.tab_train,"vertical")
+        top=split(pane(train,120,390))
+        form=scrolling(pane(top,210,590))
         data=ttk.LabelFrame(form,text="Dataset",padding=12);data.pack(fill="x",pady=4)
         ttk.Label(data,textvariable=self.workspace_text,wraplength=420).pack(anchor="w")
         ttk.Button(data,text="Revisar dataset",command=lambda:self.tabs.select(self.tab_review)).pack(anchor="w",pady=3)
@@ -114,7 +115,7 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         controls(self,params)
         self.train_btn=ttk.Button(form,text="Preparar dataset e iniciar treino",command=self.train,style="Primary.TButton")
         self.train_btn.pack(fill="x",pady=6)
-        side=ttk.LabelFrame(top,text="Projeto e ferramentas",padding=12);side.grid(row=0,column=1,sticky="nsew",padx=(8,0),pady=4)
+        side=ttk.LabelFrame(scrolling(pane(top,170,300)),text="Projeto e ferramentas",padding=12);side.pack(fill="both",expand=True)
         ttk.Label(side,textvariable=self.project_label,style="Metric.TLabel").pack(anchor="w")
         self.summary=tk.StringVar()
         ttk.Label(side,textvariable=self.summary,wraplength=200).pack(anchor="w",pady=8)
@@ -122,17 +123,40 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         self.train_previews.bind("<Map>",lambda _:self.after_idle(self.draw_train_samples))
         ttk.Button(side,text="Ver LoRAs",command=self.open_loras).pack(fill="x",pady=2)
         ttk.Button(side,text="Testar e comparar",command=lambda:self.train_book.select(self.tab_gallery)).pack(fill="x",pady=2)
-        log_panel=ttk.LabelFrame(self.tab_train,text="Log de treinamento",padding=10);log_panel.pack(fill="both",expand=True,pady=8)
+        log_panel=ttk.LabelFrame(pane(train,70,160),text="Log de treinamento",padding=10);log_panel.pack(fill="both",expand=True,pady=8)
         self.log=tk.Text(log_panel,width=1,height=9,wrap="word");self.log.pack(side="left",fill="both",expand=True)
-        progress=ttk.Frame(log_panel,width=190);progress.pack(side="right",fill="y",padx=8)
-        ttk.Label(progress,textvariable=self.status,wraplength=175).pack(anchor="w")
-        self.train_progress=ttk.Progressbar(progress,maximum=100);self.train_progress.pack(fill="x",pady=8)
-        ttk.Button(progress,text="Parar tarefa",command=self._cancel).pack(fill="x")
+        log_scroll=ttk.Scrollbar(log_panel,command=self.log.yview)
+        log_scroll.pack(side="right",fill="y")
+        self.log.configure(yscrollcommand=log_scroll.set)
         self.gallery_ui=Gallery(self,self.tab_gallery)
         self.steps.trace_add("write",lambda *_:self._update_stats())
         self.interval.trace_add("write",lambda *_:self._update_stats())
         self.tabs.bind("<<NotebookTabChanged>>",lambda _:self._update_stats(),add="+")
         self.finish_layout()
+    def draw_home_samples(self):
+        if not hasattr(self,"project") or not self.home_samples.winfo_ismapped():return
+        from itertools import islice
+        paths=tuple(self.project.path_for(it) for it in islice((it for it in self.project.items.values() if selected(it)),6))
+        if paths==getattr(self,"home_paths",None):return
+        self.home_paths=paths
+        for child in self.home_samples.winfo_children():child.destroy()
+        self.cover.configure(image=self.assets.image("ui/empty_dataset.png",72))
+        self.cover.photo=None
+        for path in paths:
+            try:
+                with Image.open(path) as img:
+                    img.draft("RGB",(220,138))
+                    if self.cover.photo is None:
+                        img.thumbnail((200,126),Image.Resampling.LANCZOS)
+                        self.cover.photo=ImageTk.PhotoImage(img)
+                        self.cover.configure(image=self.cover.photo)
+                    img.thumbnail((96,74),Image.Resampling.LANCZOS)
+                    preview=ImageTk.PhotoImage(img)
+                label=ttk.Label(self.home_samples,image=preview)
+                label.image=preview
+                label.pack(side="left",padx=2)
+            except (ValueError,OSError):continue
+
     def draw_train_samples(self):
         if not self.train_previews.winfo_ismapped():return
         from itertools import islice
@@ -224,7 +248,7 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         if result:self.config_fields[key].set(result)
     def save_components(self):
         if self.busy:return
-        write_json(CONF,{k:v.get() for k,v in self.config_fields.items()})
+        write_json(CONF,{**read_json(CONF,{}), **{k:v.get() for k,v in self.config_fields.items()}})
         messagebox.showinfo("Componentes","Caminhos salvos. Feche e reabra o HydraTrainer para aplicá-los.")
     def install_dialog(self):
         if self.busy:return
@@ -253,7 +277,7 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
             raise ValueError("Selecione llama.cpp (local) para usar JoyCaption ou escolha Padrão no perfil.")
         if joy and not self.cfg.get("servidor"):raise ValueError("Configure o executável llama-server para usar JoyCaption.")
         if joy:thinking=False
-        cfg=replace(super()._ai_config(need_caption_profile),thinking=thinking)
+        cfg=replace(super()._ai_config(need_caption_profile, confirm=False),thinking=thinking)
         if cfg.provider=="llama.cpp (local)" and self.cfg.get("servidor") and (joy or self.caption_process or self.api_url.get() in ("http://127.0.0.1:8080","")):
             cfg._managed_files=dict(self.cfg)
             if joy:
@@ -263,6 +287,8 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
                 cfg._managed_files.update(modelo_caption=str(folder/"Llama-Joycaption-Beta-One-Hf-Llava-Q4_K_M.gguf"),
                                           projetor=str(folder/"llama-joycaption-beta-one-llava-mmproj-model-f16.gguf"))
             cfg._previous_config=self.previous_caption_config if self.caption_process else (self.api_url.get(),self.model.get())
+        else:
+            caption_ui.confirm_inference_endpoint(cfg, messagebox.askyesno)
         return cfg
 
     def _run(self,title,func,editable=False,on_success=None,prepare_cfg=None):
@@ -430,6 +456,7 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         items=[v for v in self.project.items.values() if selected(v)]
         n=len(items);count=sum(ready(it,profile,size) for it in items)
         if hasattr(self,"home_summary"):
+            self.draw_home_samples()
             frames=sum(it.get("pts_ms") is not None for it in items)
             captions=sum(bool(it.get("krea")) for it in items)
             tagged=sum(bool(it.get("sdxl") or it.get("tags")) for it in items)

@@ -22,6 +22,12 @@ Image.MAX_IMAGE_PIXELS = max(1, psutil.virtual_memory().total // 48)
 VALID_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 
 
+def csv_text(value):
+    if isinstance(value, str) and (value.startswith(("\t","\r","\n")) or value.lstrip().startswith(("=","+","-","@"))):
+        return "'" + value
+    return value
+
+
 def file_hash(path: Path, algorithm: str = 'sha256') -> str:
     h = hashlib.new(algorithm)
     with path.open('rb') as f:
@@ -164,7 +170,7 @@ class Dataset(Catalog):
             try:
                 out_name = Path(it['filename']).stem + ('.png' if fmt=='PNG' else '.jpg')
                 if out_name.casefold() in stems:
-                    out_name = Path(out_name).stem+"_"+key+Path(out_name).suffix
+                    out_name = Path(out_name).stem+"_"+hashlib.sha256(key.encode()).hexdigest()+Path(out_name).suffix
                 stems.add(out_name.casefold())
                 image = render_dataset_image(src, size, it.get('crop', {}), fit, fmt)
                 for sub in (['SDXL', 'Krea2'] if mode == 'Ambos' else [mode]):
@@ -192,10 +198,11 @@ class Dataset(Catalog):
             writer.writerow(['arquivo', 'site', 'post_id', 'link', 'artista','media_uid','frame_uid','pts_ms','frame_index','sha256_original','sha256_export','tags_origem','tags_frame','caption','perfil','modelo','crop','license','usage_notes','versao'])
             for row in rows:
                 for origin in row['origins']:
-                    writer.writerow([row['filename'], origin['source'], origin['post_id'],
+                    cells = [row['filename'], origin['source'], origin['post_id'],
                                      origin.get('url',''), origin.get('artist',''), row['media_uid'],row['frame_uid'],
                                      row['pts_ms'],row['frame_index'],row['original_sha256'],row['export_sha256'],
                                      ', '.join(origin.get('tags',[])),row.get('sdxl',''),row.get('krea',''),
                                      row.get('caption_profile',''),row.get('caption_model',''),json.dumps(row['crop']),
-                                     origin.get('metadata',{}).get('license'),origin.get('metadata',{}).get('usage_notes'),'1.2.1'])
+                                     origin.get('metadata',{}).get('license'),origin.get('metadata',{}).get('usage_notes'),'1.2.1']
+                    writer.writerow(csv_text(cell) for cell in cells)
         return done, failed

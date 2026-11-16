@@ -7,6 +7,13 @@ import subprocess
 import time
 import urllib.request
 
+def local_opener():
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+
+
 class JobLimit(ctypes.Structure):
     _fields_=[("per_process",ctypes.c_int64),("per_job",ctypes.c_int64),("flags",wintypes.DWORD),
               ("min_ws",ctypes.c_size_t),("max_ws",ctypes.c_size_t),("active",wintypes.DWORD),
@@ -74,10 +81,11 @@ def start_caption(cfg, log, *, thinking=False):
     with log.open("w",encoding="utf-8") as f:
         obj=Owned(cmd,cwd=Path(cmd[0]).parent,stdout=f,stderr=subprocess.STDOUT)
     try:
+        transport = local_opener()
         for _ in range(180):
             if obj.proc.poll() is not None:raise RuntimeError("Modelo de caption encerrou: "+str(log))
             try:
-                with urllib.request.urlopen(url+"/health",timeout=2) as rep:
+                with transport.open(url+"/health",timeout=2) as rep:
                     if rep.status==200:return obj,url
             except OSError:time.sleep(1)
         raise TimeoutError("O modelo de caption não iniciou. Veja "+str(log))

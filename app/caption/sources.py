@@ -9,6 +9,7 @@ import threading
 import time
 
 import requests
+from net_limits import NoRedirectSession, response_json
 
 SOURCES = ('e621', 'Danbooru', 'Gelbooru', 'Derpibooru', 'Rule34.xxx')
 SOURCE_DOMAINS = {
@@ -60,6 +61,8 @@ class SearchResult:
 
 def media_url_ok(url: str, source: str) -> bool:
     try:
+        if not isinstance(url,str) or any(ord(c) <= 32 or ord(c) == 127 or c == chr(92) for c in url):
+            return False
         p = urlsplit(url)
         if p.scheme != 'https' or p.username or p.password or p.port not in (None, 443):
             return False
@@ -245,9 +248,8 @@ class SourceClient:
         self.derpi_key = derpi_key.strip()
         self.stop = stop or threading.Event()
         self.e621_key="";self.dan_auth=None
-        self.session = requests.Session()
-        suffix = f' (by {self.username} on e621)' if self.username else ' (local dataset tool)'
-        self.session.headers.update({'User-Agent': 'CaptionCreate/1.2' + suffix, 'Accept': 'application/json'})
+        self.session = NoRedirectSession()
+        self.session.headers.update({'User-Agent': 'CaptionCreate/1.2', 'Accept': 'application/json'})
         self.last_request = {}
 
     def request(self, url, params=None, stream=False, auth=None):
@@ -260,7 +262,10 @@ class SourceClient:
             try:
                 current = url
                 for hop in range(5):
-                    r = self.session.get(current, params=params if not hop else None, stream=stream,
+                    headers = {}
+                    if self.username and urlsplit(current).hostname == 'e621.net':
+                        headers['User-Agent'] = f'CaptionCreate/1.2 (by {self.username} on e621)'
+                    r = self.session.get(current, params=params if not hop else None, stream=True, headers=headers,
                                          timeout=(12,65), auth=auth if not hop else None, allow_redirects=False)
                     if not r.is_redirect:
                         break
@@ -317,23 +322,23 @@ class SourceClient:
             if page > 1:
                 params['page'] = page
             with self.request('https://e621.net/posts.json', params, auth=auth) as r:
-                return parse_e621(r.json())
+                return parse_e621(response_json(r))
         if source == 'Danbooru':
             with self.request('https://danbooru.donmai.us/posts.json', {'tags': query, 'limit': 100, 'page': page},auth=self.dan_auth) as r:
-                return parse_danbooru(r.json())
+                return parse_danbooru(response_json(r))
         if source == 'Gelbooru':
             params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1,
                       'limit': 100, 'pid': page-1, 'tags': query}
             if self.gel_user_id and self.gel_key:
                 params.update({'user_id': self.gel_user_id, 'api_key': self.gel_key})
             with self.request('https://gelbooru.com/index.php', params) as r:
-                return parse_gelbooru(r.json())
+                return parse_gelbooru(response_json(r))
         if source == 'Derpibooru':
             params = {'q': query, 'page': page, 'per_page': 50}
             if self.derpi_key:
                 params['key'] = self.derpi_key
             with self.request('https://derpibooru.org/api/v1/json/search/images', params) as r:
-                return parse_derpibooru(r.json())
+                return parse_derpibooru(response_json(r))
         if source == 'Rule34.xxx':
             params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1,
                       'limit': 100, 'pid': page-1, 'tags': query}
@@ -349,13 +354,13 @@ class SourceClient:
                 raise ValueError("Informe a chave do Rule34 ou cole o bloco completo de API Access Credentials.")
             params.update({"api_key":token,"user_id":uid})
             with self.request('https://api.rule34.xxx/index.php', params) as r:
-                return parse_rule34(r.json())
+                return parse_rule34(response_json(r))
         raise ValueError('Fonte desconhecida: ' + source)
 
     def count(self, source: str, query: str) -> int | None:
         if source != 'e621':
             return None
         with self.request('https://e621.net/posts/count.json', {'tags': query},auth=(self.username,self.e621_key) if self.e621_key else None) as response:
-            obj = response.json()
+            obj = response_json(response)
         c = obj.get('counts', obj) if isinstance(obj, dict) else {}
         return _score(c.get('posts', c.get('count'))) if isinstance(c, dict) else None

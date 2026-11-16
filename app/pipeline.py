@@ -3,6 +3,7 @@ from tkinter import ttk,filedialog,messagebox,simpledialog
 from pathlib import Path
 from ambiente import PROFILES,LORAS
 from responsive import wrap_rows
+from layout_ui import scrolling, pane, split, banner
 from studio_shell import Assets,native_shell,home,startup_logging
 from preferencias import Preferences,apply_style
 from configuracao import read_json
@@ -10,62 +11,22 @@ from configuracao import read_json
 def page(book,title):
     host=ttk.Frame(book,padding=4);book.add(host,text=title)
     if hasattr(book,"aliases"):
-        inner=scrolling(host,padding=(22,16))
-        if title!="Início":
-            titles={"Revisão":"Revisão do dataset","Configuração":"Configurações"}
-            icons={"Mídias":"images","Revisão":"layers","Treino e testes":"gpu","Mesclar LoRAs":"merge","Configuração":"settings","Aparência":"palette"}
-            ttk.Label(inner,text="  "+titles.get(title,title),image=book.app.assets.icon(icons[title]),compound="left",style="PageTitle.TLabel").pack(anchor="w",pady=(0,4))
-            subtitles={"Mídias":"Baixe, importe e extraia imagens e frames","Revisão":"Confira o recorte, as tags e a descrição das imagens.",
-                       "Treino e testes":"Configure o treinamento e compare checkpoints.","Mesclar LoRAs":"Combine modelos compatíveis em um novo arquivo.",
-                       "Configuração":"Projeto, hardware, serviços de IA e fontes de mídia.","Aparência":"Tema e tamanho de fonte do aplicativo."}
-            ttk.Label(inner,text=subtitles[title],style="Secondary.TLabel").pack(anchor="w",pady=(0,10))
+        inner=ttk.Frame(host,padding=(7,4))
+        inner.pack(fill="both",expand=True)
         book.aliases[str(inner)]=str(host)
         return inner
     return host
-
-def scrolling(host,max_width=None,padding=8):
-    canvas=tk.Canvas(host,highlightthickness=0)
-    bar=ttk.Scrollbar(host,command=canvas.yview)
-    canvas.configure(yscrollcommand=bar.set)
-    bar.pack(side="right",fill="y");canvas.pack(fill="both",expand=True)
-    body=ttk.Frame(canvas,padding=padding)
-    ident=canvas.create_window(0,0,anchor="nw",window=body)
-    def fit(_=None):
-        width=max(1,canvas.winfo_width())
-        canvas.itemconfigure(ident,width=min(width,max_width) if max_width else width,
-                             height=max(canvas.winfo_height(),body.winfo_reqheight()))
-        canvas.configure(scrollregion=canvas.bbox("all"))
-    body.bind("<Configure>",fit)
-    body.bind("<Map>",lambda _:body.after_idle(fit),add="+")
-    canvas.bind("<Configure>",fit)
-    body.scroll_canvas=canvas
-    root=host.winfo_toplevel()
-    if not getattr(root,"page_wheel_bound",False):
-        def wheel(event):
-            widget=event.widget
-            if isinstance(widget,(tk.Text,ttk.Treeview,ttk.Combobox)):return
-            step=-int(event.delta/120)
-            while isinstance(widget,tk.Misc):
-                target=getattr(widget,"scroll_canvas",None)
-                if target is not None:
-                    top,bottom=target.yview()
-                    if (step<0 and top>0) or (step>0 and bottom<1):
-                        target.yview_scroll(step,"units");return "break"
-                widget=widget.master
-        root.bind_all("<MouseWheel>",wheel,add="+")
-        root.page_wheel_bound=True
-    return body
 
 class Pipeline(Preferences):
     def shell_chrome(self):
         self.init_preferences()
         self.assets=Assets()
-        head=ttk.Frame(self,height=64,padding=(16,6),style="Header.TFrame");head.pack(fill="x");head.pack_propagate(False);head.fixed_layout=True
-        ttk.Label(head,image=self.assets.image("branding/hydra_symbol_128.png",44),style="Header.TLabel").pack(side="left")
-        ttk.Label(head,image=self.assets.image("branding/hydra_wordmark.png",200),style="Header.TLabel").pack(side="left",padx=8)
-
-        ttk.Button(head,text="Parar tarefa",command=lambda:self._cancel() if hasattr(self,"stop") else None).pack(side="right")
-        meters=ttk.Frame(head);meters.pack(side="left",fill="x",expand=True,padx=12)
+        banner(self)
+        foot=ttk.Frame(self,padding=(10,3))
+        foot.pack(side="bottom",fill="x")
+        ttk.Separator(foot).pack(fill="x",pady=(0,2))
+        meters=ttk.Frame(foot)
+        meters.pack(fill="x")
         self.meters={}
         for col,(key,title) in enumerate([("work","Tarefa"),("download","Download"),("extract","Frames"),("tags","Tags"),("caption","Caption")]):
             meters.columnconfigure(col,weight=1,uniform="p")
@@ -73,11 +34,24 @@ class Pipeline(Preferences):
             lab=ttk.Label(box,text=title,width=5);lab.pack(fill="x")
             bar=ttk.Progressbar(box,maximum=100);bar.pack(fill="x")
             self.meters[key]=(lab,bar)
-        foot=ttk.Frame(self,height=32,padding=(10,2));foot.pack(side="bottom",fill="x");foot.pack_propagate(False);foot.fixed_layout=True
+        def layout_meters(event):
+            cols=5 if event.width>=max(890,self.font_size.get()*77) else 3
+            if getattr(meters,"columns",0)==cols:return
+            meters.columns=cols
+            for col in range(5):meters.columnconfigure(col,weight=int(col<cols),uniform="p" if col<cols else "")
+            for i,(label,_) in enumerate(self.meters.values()):
+                label.master.grid(row=i//cols,column=i%cols,sticky="ew")
+        meters.bind("<Configure>",layout_meters)
+        statusbar=ttk.Frame(foot)
+        statusbar.pack(fill="x")
         self.workspace_text=tk.StringVar(value=str(self.startup_root))
         self.hardware_short=tk.StringVar()
-        for var,side in ((self.hardware_short,"right"),(self.workspace_text,"right"),(self.status,"left")):
-            ttk.Label(foot,textvariable=var,width=1,anchor="w").pack(side=side,fill="x",expand=True,padx=4)
+        statusbar.columnconfigure(0,weight=2)
+        statusbar.columnconfigure(1,weight=1)
+        for i,var in enumerate((self.status,self.workspace_text,self.hardware_short)):
+            ttk.Label(statusbar,textvariable=var,width=1 if i<2 else None).grid(row=0,column=i,sticky="ew",padx=4)
+        ttk.Button(statusbar,text="Parar tarefa",command=lambda:self._cancel() if hasattr(self,"stop") else None,
+                   padding=(7,2)).grid(row=0,column=3)
         self.tabs=native_shell(self)
         self.home_page=page(self.tabs,"Início")
         startup_logging(self)
@@ -90,18 +64,35 @@ class Pipeline(Preferences):
         self.tabs.select(self.home_page)
         apply_style(self)
     def shell(self):
-        self.options_book=ttk.Notebook(self.tab_env);self.options_book.pack(fill="both",expand=True)
+        settings=split(self.tab_env)
+        choices=scrolling(pane(settings,125,210,"never"),padding=4)
+        self.options_book=ttk.Notebook(pane(settings,285,680),style="Studio.TNotebook")
+        self.options_book.pack(fill="both",expand=True)
         self.tab_project=scrolling(page(self.options_book,"Projeto e preset"),860)
         self.tab_ai=scrolling(page(self.options_book,"IA e prompts"),860)
         self.accounts=scrolling(page(self.options_book,"Fontes e contas"),860)
         self.extract_settings=scrolling(page(self.options_book,"Extrator"),860)
         self.component_panel=scrolling(page(self.options_book,"Componentes"),860)
-        self.general_tab=page(self.options_book,"Aparência")
+        self.general_tab=scrolling(page(self.options_book,"Aparência"))
+        for tab in self.options_book.tabs():
+            title=self.options_book.tab(tab,"text")
+            ttk.Button(choices,text=title,command=lambda t=tab:self.options_book.select(t)).pack(fill="x",pady=2)
+        def highlight(_=None):
+            for tab,button in zip(self.options_book.tabs(),choices.pack_slaves()):
+                button.configure(style="NavActive.TButton" if tab==self.options_book.select() else "Nav.TButton")
+        self.options_book.bind("<<NotebookTabChanged>>",highlight)
+        highlight()
         self.media_book=ttk.Notebook(self.media_tab);self.media_book.pack(fill="both",expand=True)
-        self.tab_search=scrolling(page(self.media_book,"Download"))
+        search=split(page(self.media_book,"Download"))
+        self.tab_search=scrolling(pane(search,235,500))
+        self.search_results=scrolling(pane(search,165,450))
         frames_page=page(self.media_book,"Extrair frames")
-        self.tab_frames=scrolling(frames_page)
-        self.tab_import=scrolling(page(self.media_book,"Importar local"))
+        frames=split(frames_page)
+        self.tab_frames=scrolling(pane(frames,250,460))
+        self.frame_results=scrolling(pane(frames,200,450))
+        imports=split(page(self.media_book,"Importar local"),"vertical")
+        self.tab_import=scrolling(pane(imports,95,195))
+        self.import_results=scrolling(pane(imports,75,220))
         ttk.Button(self.extract_settings,text="Opções e extração de frames",command=lambda:(self.tabs.select(self.media_tab),self.media_book.select(frames_page))).pack(anchor="w",padx=16,pady=16)
         self.train_book=ttk.Notebook(self.training_tab);self.train_book.pack(fill="both",expand=True)
         self.tab_train=page(self.train_book,"Treinar");self.tab_gallery=page(self.train_book,"Testar e comparar")
@@ -117,7 +108,7 @@ class Pipeline(Preferences):
             box=ttk.Combobox(row,textvariable=var,values=choices,state="readonly",width=14);box.pack(side="left")
             box.bind("<<ComboboxSelected>>",lambda _:apply_style(self))
         from idioma import language_control
-        language_control(self,self.tabs.sidebar)
+        language_control(self,self.language_host)
         self.watch_preferences();self.load_prompts();apply_style(self)
         wrap_rows(self)
         self.after_import=[]
@@ -158,7 +149,9 @@ class Pipeline(Preferences):
         remaining=self.tree.get_children()
         if remaining:self.tree.selection_set(remaining[0]);self._select()
     def merge_layout(self):
-        root=self.merge_tab
+        work=split(self.merge_tab)
+        root=scrolling(pane(work,240,570))
+        output=scrolling(pane(work,240,430))
         entries=ttk.LabelFrame(root,text="LoRAs selecionados",padding=14);entries.pack(fill="x",pady=6)
         self.merge_empty=ttk.Label(entries,text="Adicione dois ou mais LoRAs da mesma base.",image=self.assets.image("ui/empty_loras.png",82),compound="top")
         self.merge_empty.pack(fill="x",pady=6)
@@ -173,7 +166,7 @@ class Pipeline(Preferences):
         ttk.Button(row,text="Remover da lista",command=remove).pack(side="left")
         self.merge_table.bind("<Double-1>",lambda _:self.merge_weight())
         self.pair=ttk.Frame(root);self.pair.pack(fill="x")
-        config=ttk.LabelFrame(root,text="Configuração da mesclagem",padding=14);config.pack(fill="x",pady=8)
+        config=ttk.LabelFrame(output,text="Configuração da mesclagem",padding=14);config.pack(fill="x",pady=8)
         row=self.row(config)
         self.merge_family=tk.StringVar(value=self.family.get());self.merge_name=tk.StringVar(value="Meu-LoRA-mesclado")
         ttk.Label(row,text="Família").pack(side="left")
@@ -193,14 +186,36 @@ class Pipeline(Preferences):
         if ids:self.merge_empty.pack_forget()
         else:self.merge_empty.pack(fill="x",before=self.merge_table)
         for child in self.pair.winfo_children():child.destroy()
-        if len(ids)==2:
+        if ids:
             for i,key in enumerate(ids):
                 weight,path=self.merge_table.item(key,"values")
-                box=ttk.LabelFrame(self.pair,text=("Modelo A","Modelo B")[i],padding=12)
-                self.pair.columnconfigure(i,weight=1,uniform="model")
-                box.grid(row=0,column=i,sticky="nsew",padx=4)
+                box=ttk.LabelFrame(self.pair,text=("Modelo A","Modelo B")[i] if i<2 else f"LoRA {i+1}",padding=12)
+                box.pack(fill="x",pady=3)
+                photo=None
+                gallery=getattr(self,"gallery_ui",None)
+                from comparar import load_grade
+                manifest=load_grade(gallery.dest) if gallery and gallery.dest else {}
+                if manifest and not manifest.get("ranking"):
+                    for idx,version in enumerate(manifest.get("versoes",[])):
+                        if (LORAS/version["arquivo"]).resolve()!=Path(path).resolve():continue
+                        sample=manifest.get("imagens",{}).get(f"{idx}-0")
+                        if sample:photo=self.assets.image(gallery.dest/sample,100)
+                        break
+                if photo is None:photo=self.assets.image("ui/empty_loras.png",58)
+                ttk.Label(box,image=photo).pack(side="left",padx=(0,4))
+                icon=self.assets.image("icons/32/"+("purple" if i%2==0 else "cyan")+"/weights.png",24)
+                ttk.Label(box,image=icon).pack(side="left",padx=(0,7))
                 ttk.Label(box,text=Path(path).name,wraplength=280).pack(anchor="w")
-                ttk.Label(box,text=f"Peso   {weight}").pack(anchor="w")
+                value=tk.StringVar(value=str(weight))
+                ttk.Label(box,textvariable=value).pack(side="right")
+                def adjust(v,k=key,label=value):
+                    weight=round(float(v),2)
+                    self.merge_table.set(k,"peso",str(weight))
+                    label.set(str(weight))
+                control=ttk.Scale(box,from_=min(0,float(weight)),to=max(2,float(weight)),orient="horizontal")
+                control.set(float(weight))
+                control.configure(command=adjust)
+                control.pack(fill="x",expand=True,padx=5)
     def merge_add(self):
         paths=filedialog.askopenfilenames(initialdir=LORAS/self.merge_family.get(),filetypes=[("LoRA","*.safetensors")])
         existing={str(self.merge_table.set(i,"arquivo")).casefold() for i in self.merge_table.get_children()}

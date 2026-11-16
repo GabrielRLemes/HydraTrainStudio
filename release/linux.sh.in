@@ -9,10 +9,11 @@ dest="${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio"
 mkdir -p "$dest"
 tmp="$(mktemp -d)"
 trap 'rm -f "$tmp/$payload"; rmdir "$tmp"' EXIT
-if [[ -f "$here/$payload" ]] && printf '%s  %s\n' "$sha" "$here/$payload" | sha256sum --check --status; then archive="$here/$payload"; else
+archive="$tmp/$payload"
+if [[ -f "$here/$payload" ]]; then cp -- "$here/$payload" "$archive"; fi
+if ! { [[ -f "$archive" ]] && printf '%s  %s\n' "$sha" "$archive" | sha256sum --check --status; }; then
   [[ -n "$repo" ]] || { echo "Coloque $payload ao lado do instalador."; exit 1; }
-  archive="$tmp/$payload"
-  curl -fL --retry 3 "https://github.com/$repo/releases/download/$tag/$payload" -o "$archive"
+  curl --proto '=https' --proto-redir '=https' -fL --retry 3 "https://github.com/$repo/releases/download/$tag/$payload" -o "$archive"
 fi
 printf '%s  %s\n' "$sha" "$archive" | sha256sum -c -
 unzip -oq "$archive" -d "$dest"

@@ -8,7 +8,7 @@ internal static class HydraTrainer {
         try {
             string script = Path.Combine(root, "Abrir.ps1");
             if (!File.Exists(script)) throw new IOException("Extraia todo o ZIP antes de abrir o HydraTrainer.");
-            var cmd = new ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File \"" + script + "\"");
+            var cmd = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoProfile -ExecutionPolicy Bypass -File \"" + script + "\"");
             cmd.WorkingDirectory = root;
             cmd.UseShellExecute = false;
             cmd.CreateNoWindow = true;

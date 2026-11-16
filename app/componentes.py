@@ -18,8 +18,8 @@ from platform_paths import WINDOWS,VENV_PY
 ASSETS=read_json(Path(__file__).with_name("arquivos.json"))
 COMP=ROOT/"componentes"
 CACHE=DATA/"downloads"
-TRAIN_COMMIT="372bc94bf8d90f3379b445bc08250b4a2af29af2"
-COMFY_COMMIT="63be2f9b82ad0dac88a7ceaa28a9cf3154125a18"
+from engine_lock import TRAIN_COMMIT, COMFY_COMMIT, ENGINE_SHA256
+from configuracao import MANAGED_TRAIN, MANAGED_COMFY, MANAGED_LLAMA
 FAMILIES=("Krea2","Anima","Illustrious")
 def fetch(url,file,sha=None):
     file.parent.mkdir(parents=True,exist_ok=True)
@@ -29,7 +29,7 @@ def fetch(url,file,sha=None):
                 if hashlib.file_digest(f,"sha256").hexdigest()!=sha:raise RuntimeError(f"Hash inválido: {file}")
         return file
     part=file.with_suffix(file.suffix+".part")
-    subprocess.run(["curl.exe" if WINDOWS else "curl","-fLsS","--retry","4","--connect-timeout","20","-C","-","-o",str(part),url],check=True)
+    subprocess.run(["curl.exe" if WINDOWS else "curl","-fLsS","--proto","=https","--proto-redir","=https","--retry","4","--connect-timeout","20","-C","-","-o",str(part),url],check=True)
     if sha:
         with part.open("rb") as f:
             valid=hashlib.file_digest(f,"sha256").hexdigest()==sha
@@ -42,14 +42,19 @@ def fetch(url,file,sha=None):
 
 def source(repo,commit,dest):
     marker=dest/".hydra-commit"
-    if marker.is_file() and marker.read_text().strip()==commit:return
+    if marker.is_file() and marker.read_text().strip()==ENGINE_SHA256[(repo,commit)]:return
     if dest.exists():raise RuntimeError(f"Já existe uma instalação diferente em {dest}. Utilize a aba Ambiente.")
-    archive=fetch(f"https://codeload.github.com/{repo}/zip/{commit}",CACHE/(commit+".zip"))
+    archive=fetch(f"https://codeload.github.com/{repo}/zip/{commit}",CACHE/(commit+".zip"),ENGINE_SHA256[(repo,commit)])
     dest.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(dir=dest.parent) as tmp:
-        with ZipFile(archive) as z:z.extractall(tmp)
+        with archive.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != ENGINE_SHA256[(repo, commit)]:
+                raise RuntimeError("Falha de integridade no arquivo do motor.")
+            stream.seek(0)
+            with ZipFile(stream) as z:
+                z.extractall(tmp)
         folder,=Path(tmp).iterdir()
-        (folder/".hydra-commit").write_text(commit)
+        (folder/".hydra-commit").write_text(ENGINE_SHA256[(repo,commit)])
         folder.rename(dest)
 
 def runner(cmd,**kwargs):
@@ -77,7 +82,7 @@ def install_env(dest,torch,vision,req,extra):
     py=dest/VENV_PY;tool=uv()
     if not py.is_file():runner([tool,"venv",dest,"--python","3.12","--managed-python"])
     runner([tool,"pip","install","--python",py,"torch=="+torch+"+cu130","torchvision=="+vision+"+cu130",
-            "--index-url","https://download.pytorch.org/whl/cu130","--extra-index-url","https://pypi.org/simple","--index-strategy","unsafe-best-match"])
+            "--index","https://download.pytorch.org/whl/cu130","--default-index","https://pypi.org/simple","--index-strategy","first-index"])
     runner([tool,"pip","install","--python",py,"-r",req,*extra])
     return py
 
@@ -92,7 +97,7 @@ def wanted(asset,choices):
     if n.startswith("vae/"):return "Anima" in choices or "Krea2" in choices
     return "Illustrious" in choices
 
-def reusable(a,cfg):
+def reusable(a,cfg, *, verify=False):
     n=a["name"]
     if n.startswith("joycaption/"):return False  # fetch verifies existing weights too
     if n.endswith(".gguf"):
@@ -101,7 +106,16 @@ def reusable(a,cfg):
         return Path(cfg.get(key,"")).is_file()
     if n.endswith(".zip"):
         return Path(cfg.get("servidor","")).is_file()
-    return any(f.is_file() and f.stat().st_size==a["size"] for f in (Path(cfg["modelos"])/n,COMP/"pesos"/n))
+    for path in (Path(cfg["modelos"])/n, COMP/"pesos"/n):
+        if not path.is_file():
+            continue
+        if not verify:
+            return path.stat().st_size == a["size"]
+        with path.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != a["sha"]:
+                raise RuntimeError(f"Peso diferente do modelo oficial: {path}")
+        return True
+    return False
 
 def custom_asset(url,suffix):
     from urllib.parse import urlsplit,unquote
@@ -125,22 +139,22 @@ def install(choices):
     library=Path(cfg["treino"])
     py=library/"trainer/venv"/VENV_PY
     has_training=bool(set(FAMILIES)&set(choices))
-    managed_train=library.resolve()==(COMP/"treino").resolve()
+    managed_train=library.resolve()==MANAGED_TRAIN.resolve()
     if has_training and (not py.is_file() or managed_train and not (library/".pronto").is_file()):
-        library=COMP/"treino";trainer=library/"trainer"
+        library=MANAGED_TRAIN;trainer=library/"trainer"
         source("amenorira/lora-scripts-anima",TRAIN_COMMIT,trainer)
         py=install_env(trainer/"venv","2.12.1","0.27.1",trainer/"requirements.txt",(["triton-windows>=3.7,<3.8"] if WINDOWS else [])+["pip"])
         (library/".pronto").write_text(TRAIN_COMMIT)
         cfg["treino"]=str(library)
-    managed_comfy=Path(cfg["comfy"]).resolve()==(COMP/"Comfy").resolve()
-    if "ComfyUI" in choices and (not (Path(cfg["python_comfy"]).is_file() and (Path(cfg["comfy"])/"ComfyUI/main.py").is_file()) or managed_comfy and not (COMP/"Comfy/.pronto").is_file()):
-        base=COMP/"Comfy";src=base/"ComfyUI"
+    managed_comfy=Path(cfg["comfy"]).resolve()==MANAGED_COMFY.resolve()
+    if "ComfyUI" in choices and (not (Path(cfg["python_comfy"]).is_file() and (Path(cfg["comfy"])/"ComfyUI/main.py").is_file()) or managed_comfy and not (MANAGED_COMFY/".pronto").is_file()):
+        base=MANAGED_COMFY;src=base/"ComfyUI"
         source("comfyanonymous/ComfyUI",COMFY_COMMIT,src)
         cp=install_env(base/"scripts/venv","2.13.0","0.28.0",src/"requirements.txt",[])
         (base/".pronto").write_text(COMFY_COMMIT)
         cfg.update(comfy=str(base),python_comfy=str(cp))
     for a in ASSETS:
-        if not wanted(a,choices) or reusable(a,cfg):continue
+        if not wanted(a,choices) or reusable(a,cfg,verify=True):continue
         n=a["name"]
         if n.startswith("joycaption/"):
             fetch(a["url"],COMP/n,a["sha"])
@@ -163,7 +177,7 @@ def install(choices):
         existing=shutil.which("llama-server")
         if existing:cfg["servidor"]=existing
         else:
-            src=COMP/"llama.cpp"
+            src=MANAGED_LLAMA
             source("ggml-org/llama.cpp","b11900",src)
             build=src/"build"
             runner(["cmake","-S",src,"-B",build,"-DCMAKE_BUILD_TYPE=Release","-DGGML_CUDA="+("ON" if shutil.which("nvcc") else "OFF"),"-DLLAMA_CURL=OFF"])
@@ -174,7 +188,7 @@ def install(choices):
     if not Path(cfg["modelos"]).is_dir():cfg["modelos"]=str(COMP/"pesos")
     if has_training:
         # A private tokenizer cache is prepared only for a new, Hydra-managed installation.
-        if library.resolve()==(COMP/"treino").resolve():
+        if library.resolve()==MANAGED_TRAIN.resolve():
             repos=[]
             if "Krea2" in choices:repos.append("Qwen/Qwen3-VL-4B-Instruct")
             if "Illustrious" in choices:repos.extend(["openai/clip-vit-large-patch14","laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"])

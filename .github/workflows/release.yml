@@ -3,12 +3,19 @@ on:
   push:
     tags: ['v*']
 permissions:
-  contents: write
+  contents: read
 jobs:
+  verify:
+    uses: ./.github/workflows/check.yml
   package:
+    needs: verify
+    permissions:
+      contents: write
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - run: python release/build.py
       - shell: bash
         env:

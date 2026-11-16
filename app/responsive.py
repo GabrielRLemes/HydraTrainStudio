@@ -28,7 +28,7 @@ class Tiles:
     def draw(self):
         self.pending=None;c=self.canvas
         if not c.winfo_ismapped():return
-        ids=self.tree.get_children();self.cols=3;self.cell=max(32,c.winfo_width()//3)
+        ids=self.tree.get_children();self.cols=max(1,c.winfo_width()//60);self.cell=max(32,c.winfo_width()//self.cols)
         rows=(len(ids)+self.cols-1)//self.cols
         area=(0,0,self.cols*self.cell,rows*self.cell)
         if getattr(self,"area",None)!=area:
@@ -111,6 +111,13 @@ def wrap_rows(widget):
     def arrange(event=None):
         nonlocal last
         width=widget.winfo_width()
+        parent=widget.master
+        while parent is not None:
+            viewport=getattr(parent,"scroll_canvas",None)
+            if viewport is not None:
+                width=min(width,viewport.winfo_width()-36)
+                break
+            parent=parent.master
         if width<40:return
         row=col=used=0;positions=[]
         for c in controls:
@@ -124,6 +131,13 @@ def wrap_rows(widget):
             c.grid(row=r,column=k,sticky="ew",padx=3,pady=3)
     widget.bind("<Configure>",arrange,add="+")
     widget.bind("<<ResizeRows>>",arrange,add="+")
+    parent=widget.master
+    while parent is not None:
+        viewport=getattr(parent,"scroll_canvas",None)
+        if viewport is not None:
+            viewport.bind("<Configure>",arrange,add="+")
+            break
+        parent=parent.master
     widget.after_idle(arrange)
 
 def notebook_view(app):

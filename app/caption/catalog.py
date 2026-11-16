@@ -2,6 +2,7 @@
 from threading import RLock
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
 import tempfile
@@ -16,11 +17,7 @@ from sources import canonical_tags
 def uid(*parts):
     return hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
 
-def safe_path(parent, name):
-    p = (parent / name).resolve()
-    if p.parent != parent.resolve() or Path(name).name != name:
-        raise ValueError("Nome de arquivo fora do projeto.")
-    return p
+from local_files import project_path as safe_path
 
 def publish(folder, name, write, checksum=None):
     from dataset import file_hash
@@ -57,20 +54,24 @@ class Catalog:
         self.write_lock=RLock()
         self.progress=lambda *args:None
         self.frame_received=lambda key:None
-        self.config_path=self.root/"configuracao.json"
+        self.config_path=safe_path(self.root,"configuracao.json")
+        data = Path(os.environ.get("HYDRA_DATA_DIR",Path(__file__).resolve().parents[2]/"dados"))
+        self.host_options = data / "preferencias-projetos" / (uid(str(self.root))+".json")
+        local = json.loads(self.host_options.read_text("utf8")) if self.host_options.is_file() else {}
         conf=json.loads(self.config_path.read_text("utf8")) if self.config_path.is_file() else {}
-        self.settings = Settings(**conf.get("extrator",{}))
+        self.settings = Settings(**{**conf.get("extrator",{}), "ffprobe":local.get("ffprobe","")})
         self.library=None
-        if conf.get("biblioteca"):
+        if local.get("biblioteca"):
             from library import Library
-            self.library=Library(conf["biblioteca"])
-        self.library_folder=conf.get("biblioteca")
+            self.library=Library(local["biblioteca"])
+        self.library_folder=local.get("biblioteca")
         self.auto_extract = True
         self.sidecar_mode = "Ignorar"
         self.stop = None
         self.cache = self.root / "frames"
         self.cache.mkdir(exist_ok=True)
-        self.db = sqlite3.connect(self.root / "catalogo.sqlite", check_same_thread=False)
+        self.db = sqlite3.connect(safe_path(self.root, "catalogo.sqlite"), check_same_thread=False)
+        self.db.execute("PRAGMA trusted_schema=OFF")
         self.db.row_factory = sqlite3.Row
         self.db.executescript("""
             PRAGMA journal_mode=WAL;
@@ -131,7 +132,10 @@ class Catalog:
 
     def persist_options(self):
         from core import atomic_json
-        atomic_json(self.config_path,{"extrator":asdict(self.settings),"biblioteca":self.library_folder})
+        options = asdict(self.settings)
+        ffprobe = options.pop("ffprobe")
+        atomic_json(self.config_path, {"extrator":options})
+        atomic_json(self.host_options, {"ffprobe":ffprobe,"biblioteca":self.library_folder})
 
     def close(self):
         if self.library:self.library.db.close()
@@ -248,7 +252,7 @@ class Catalog:
         path = Path(path).resolve()
         tags, extra = [], {}
         side = path.with_suffix(".txt")
-        if self.sidecar_mode != "Ignorar" and side.exists():
+        if self.sidecar_mode != "Ignorar" and safe_path(path.parent,side.name).is_file():
             if side.stat().st_size > 1024**2:
                 raise ValueError("TXT excede 1 MB.")
             raw = side.read_text("utf-8-sig").strip()

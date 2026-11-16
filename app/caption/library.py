@@ -1,10 +1,11 @@
 """Optional shared media index for projects in the same studio workspace."""
 import sqlite3
+from local_files import project_path
 from pathlib import Path
 
 class Library:
     def __init__(self, folder):
-        path=Path(folder)/"indice_compartilhado.sqlite"
+        path=project_path(Path(folder),"indice_compartilhado.sqlite")
         self.db=sqlite3.connect(path, check_same_thread=False)
         self.db.executescript("""
             PRAGMA journal_mode=WAL;
@@ -25,7 +26,7 @@ class Library:
 
     def register(self,row,folder):
         with self.db:
-            self.db.execute("INSERT OR REPLACE INTO originals VALUES(?,?,?)",(row["sha"],row["md5"],str(folder/row["filename"])))
+            self.db.execute("INSERT OR REPLACE INTO originals VALUES(?,?,?)",(row["sha"],row["md5"],str(project_path(folder,row["filename"]))))
 
     def visual(self,key,item,folder):
         from dataset import hamming64

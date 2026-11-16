@@ -4,9 +4,17 @@ from tkinter import ttk,filedialog,messagebox,simpledialog
 from PIL import Image,ImageTk
 from configuracao import read_json,write_json,DATA,CONF
 from ambiente import LORAS
-from comparar import versions,plan
+from caption.local_files import project_path
+from comparar import versions,plan,load_grade,remember_model,approved_model
 POINTS=(5,3,1)
 GUIDE="Escreva um prompt em Conceito e clique em Gerar. Em cada uma das 10 rodadas, compare as imagens anônimas e selecione suas favoritas em ordem. O 1º lugar vale 5 pontos, o 2º vale 3, o 3º vale 1 e os demais valem 0. Com dois checkpoints, escolha apenas dois. Clique novamente para remover uma escolha. Confirme o pódio para avançar. Os nomes e o placar aparecem ao final. Empates em pontos dividem a posição."
+
+def read_votes(dest):
+    path = project_path(dest, "votos.json")
+    if path.exists() and path.stat().st_size > 1024**2:
+        raise ValueError("Arquivo de votos acima do limite.")
+    return read_json(path, {})
+
 
 def standings(rows,votes):
     scores={r["sha"]:0 for r in rows}
@@ -32,12 +40,20 @@ class Gallery:
         frame.columnconfigure(0,weight=1)
         frame.rowconfigure(2,weight=1)
         self.settings_open=tk.BooleanVar(value=True)
-        settings=ttk.Frame(frame,padding=6)
+        from layout_ui import split,pane,scrolling
+        work=split(frame,"vertical",grid=dict(row=2,column=0,sticky="nsew"))
+        controls=pane(work,75,225)
+        settings=scrolling(controls,padding=5)
+        results=pane(work,120,330)
+        self.gallery_split=work
+        self.controls_pane=controls
+        self.results_pane=results
         def toggle():
-            if self.settings_open.get():settings.grid()
-            else:settings.grid_remove()
+            if self.settings_open.get():
+                work.add(controls,before=results,minsize=75,height=225)
+            else:work.forget(controls)
         ttk.Checkbutton(frame,text="Teste de checkpoints",variable=self.settings_open,command=toggle).grid(row=0,column=0,sticky="w")
-        settings.grid(row=1,column=0,sticky="ew")
+
         self.settings=settings
         row=ttk.Frame(settings);row.pack(fill="x")
         ttk.Button(row,text="Escolher treino…",command=self.choose).pack(side="left")
@@ -62,8 +78,8 @@ class Gallery:
         ttk.Button(row,text="Gerar",command=self.generate).pack(side="left",padx=4)
         ttk.Button(row,text="Retestar favoritas",command=self.retest).pack(side="left")
         ttk.Button(row,text="Completar grade",command=self.resume).pack(side="right")
-        area=ttk.LabelFrame(frame,text="Resultados da comparação",padding=6)
-        area.grid(row=2,column=0,sticky="nsew")
+        area=ttk.LabelFrame(results,text="Resultados da comparação",padding=6)
+        area.pack(fill="both",expand=True)
         self.canvas=tk.Canvas(area,width=1,height=390,highlightthickness=0)
         bar=ttk.Scrollbar(area,command=self.canvas.yview);bar.pack(side="right",fill="y")
         self.canvas.configure(yscrollcommand=bar.set);self.canvas.pack(fill="both",expand=True)
@@ -90,7 +106,8 @@ class Gallery:
         self.pending_draw=None
         self.draw()
     def show_results(self):
-        self.settings_open.set(False);self.settings.grid_remove()
+        self.settings_open.set(False)
+        if str(self.controls_pane) in tuple(map(str,self.gallery_split.panes())):self.gallery_split.forget(self.controls_pane)
         self.canvas.yview_moveto(0)
     def set_run(self,run):
         if self.run!=run:self.set_model("")
@@ -112,14 +129,16 @@ class Gallery:
     def choose_model(self):
         last=read_json(CONF,{}).get("ultima_base_teste")
         path=filedialog.askopenfilename(initialdir=str(Path(last).parent) if last else None,title="Modelo compatível com a família do treino",filetypes=[("SafeTensors","*.safetensors")])
-        if path:self.set_model(path)
+        if path:
+            try:self.set_model(remember_model(path))
+            except (OSError,ValueError) as exc:messagebox.showerror('Modelo',str(exc))
     def select_place(self,sha,limit):
         if sha in self.draft:self.draft.remove(sha)
         elif len(self.draft)<limit:self.draft.append(sha)
         self.draw()
     def vote(self,j,sha):
-        file=self.dest/"votos.json"
-        votes=read_json(file,{})
+        file=project_path(self.dest,"votos.json")
+        votes=read_votes(self.dest)
         if str(j) in votes:return
         votes[str(j)]=sha
         write_json(file,votes)
@@ -147,6 +166,13 @@ class Gallery:
         except Exception as e:messagebox.showerror("Comparação",str(e))
     def resume(self):
         if self.ui.busy or not self.dest:return
+        try:
+            m = load_grade(self.dest)
+            model = m.get("modelo_teste", m.get("test_model"))
+            if model:
+                approved_model(model)
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("Comparação", str(exc));return
         self.draw()
         self.ui.execute("Comparando LoRAs","comparar.py",[str(self.dest)],self.draw)
     def reopen(self):
@@ -154,7 +180,7 @@ class Gallery:
         if f:
             try:
                 dest=Path(f).parent
-                m=read_json(dest/"grade.json")
+                m=load_grade(dest)
                 self.set_run(LORAS/m["treino"]);self.dest=dest;self.show_results();self.draw()
                 self.set_model(m.get("modelo_teste",m.get("test_model","")))
                 self.mode.set("Ranking (10 rodadas)" if m.get("ranking") else "Comparar todas")
@@ -163,33 +189,50 @@ class Gallery:
             except Exception as e:messagebox.showerror("Abrir grade",str(e))
     def retest(self):
         if self.ui.busy or not self.dest:return
-        m=read_json(self.dest/"grade.json")
+        m=load_grade(self.dest)
         if not m["favoritos"]:messagebox.showinfo("Finalistas","Marque ao menos uma versão na grade.");return
         seed=simpledialog.askinteger("Reteste","Nova semente",initialvalue=m["sementes"][0]+1,minvalue=0,maxvalue=2**31-1)
         if seed is not None:
-            self.dest=plan(LORAS/m["treino"],m["prompts"],[seed]*len(m["prompts"]),m["forca"],m["favoritos"],m.get("modelo_teste",m.get("test_model","")))
+            try:
+                self.dest=plan(LORAS/m["treino"],m["prompts"],[seed]*len(m["prompts"]),m["forca"],m["favoritos"],m.get("modelo_teste",m.get("test_model","")))
+            except (OSError, ValueError) as exc:
+                messagebox.showerror("Comparação", str(exc));return
             self.show_results();self.resume()
     def favorite(self,sha):
         if self.ui.busy:
             messagebox.showinfo("Grade","Aguarde a geração ou interrompa para escolher finalistas.");return
-        m=read_json(self.dest/"grade.json"); chosen=m["favoritos"]
+        m=load_grade(self.dest); chosen=m["favoritos"]
         if sha in chosen:chosen.remove(sha)
         else:chosen.append(sha)
         write_json(self.dest/"grade.json",m);self.draw()
     def zoom(self,file,title=None):
         win=tk.Toplevel(self.ui);win.title(title or file.name)
-        with Image.open(file) as img:
-            img.thumbnail((win.winfo_screenwidth()-80,win.winfo_screenheight()-110))
-            photo=ImageTk.PhotoImage(img)
-        label=ttk.Label(win,image=photo);label.image=photo;label.pack()
+        with Image.open(file, formats=("PNG",)) as img:
+            original=img.copy()
+        width,height=original.size
+        maxw,maxh=win.winfo_screenwidth()-60,win.winfo_screenheight()-110
+        scale=min(1,maxw/width,maxh/height)
+        win.geometry(f"{max(180,round(width*scale))}x{max(140,round(height*scale))}")
+        win.minsize(min(240,maxw),min(160,maxh))
+        canvas=tk.Canvas(win,width=1,height=1,highlightthickness=0,background="#10131b")
+        canvas.pack(fill="both",expand=True)
+        def resize(event):
+            w,h=event.width,event.height
+            factor=min(w/width,h/height)
+            image=original.resize((max(1,round(width*factor)),max(1,round(height*factor))),Image.Resampling.LANCZOS)
+            canvas.photo=ImageTk.PhotoImage(image,master=canvas)
+            canvas.delete("sample")
+            canvas.create_image(w//2,h//2,image=canvas.photo,tags="sample")
+        canvas.bind("<Configure>",resize)
+
     def draw(self):
         if not self.dest:return
-        m=read_json(self.dest/"grade.json")
+        m=load_grade(self.dest)
         width=max(180,self.canvas.winfo_width())
         rows=m["versoes"]
         cols=max(1,min(len(rows),width//210))
         size=min(420,max(110,width//cols-28))
-        votes=read_json(self.dest/"votos.json",{}) if m.get("ranking") else {}
+        votes=read_votes(self.dest) if m.get("ranking") else {}
         podium=m.get("podium_order")
         if self.ballot_key!=(self.dest,len(votes)):
             self.ballot_key=(self.dest,len(votes))
@@ -216,7 +259,9 @@ class Gallery:
             for r in sorted(rows[1:],key=lambda r:-counts[r["sha"]]):
                 ttk.Label(self.grid,text=f'{counts[r["sha"]]} / {len(votes)}   ·   {Path(r["arquivo"]).name}').pack(anchor="w")
             return
-        if ranking:cols=max(1,min(len(rows)-1,width//210))
+        if ranking:
+            cols=max(1,min(len(rows)-1,width//255))
+            size=min(480,max(100,width//cols-24))
         for j,prompt in enumerate(m["prompts"]):
             if ranking and j!=len(votes):continue
             if ranking:prompt=f'{j+1} / {len(m["prompts"])}   ·   {prompt}'
@@ -232,7 +277,7 @@ class Gallery:
                     ttk.Label(section,text="Preparando as imagens da rodada…").grid(row=2,column=0,sticky="w")
                     continue
                 limit=min(len(indices),len(POINTS))
-                ttk.Button(section,text="Confirmar pódio",state="normal" if len(self.draft)==limit else "disabled",
+                ttk.Button(section,text="Confirmar pódio",image=self.ui.assets.icon("trophy",18),compound="left",style="Primary.TButton",state="normal" if len(self.draft)==limit else "disabled",
                            command=lambda j=j:self.vote(j,self.draft.copy())).grid(row=2,column=0,columnspan=cols,sticky="w")
             for index,i in enumerate(indices):
                 version=rows[i]
@@ -243,7 +288,7 @@ class Gallery:
                 ttk.Label(card,text=title).pack()
                 filename=m["imagens"].get(f"{i}-{j}")
                 if filename and (path:=self.dest/filename).is_file():
-                    with Image.open(path) as img:
+                    with Image.open(path, formats=("PNG",)) as img:
                         img.thumbnail((size,size),Image.Resampling.LANCZOS)
                         photo=ImageTk.PhotoImage(img)
                     self.photos.append(photo)

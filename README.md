@@ -21,6 +21,16 @@
 
 HydraTrainStudio integrates established training engines, including sd-scripts and musubi-tuner through lora-scripts-anima, with ComfyUI for test generation. These projects are credited in [Third-party components](THIRD_PARTY.md).
 
+## Latest update — security and desktop layout
+
+- Local vision requests bypass environment proxies. External vision requires HTTPS and confirmation of the destination, with automatic redirects disabled.
+- Imported catalogs, regional annotations and saved comparisons receive additional file-path, content and response-size validation.
+- Training-engine source archives are pinned to revisions and verified with SHA-256 before extraction, including cached downloads.
+- The desktop uses resizable work areas, compact comparison layouts and persistent progress feedback.
+- Windows and Linux CI runs security regression checks and desktop smoke checks. Release packaging waits for these checks, with an additional static security scan.
+
+See the [update notes](release/NOTAS.md) for compatibility details and validation limits.
+
 ## Installation
 
 | Platform | First launch | Open it again |
@@ -33,6 +43,8 @@ The launcher downloads the release package, verifies its SHA-256 checksum, insta
 Local training requires an **NVIDIA GPU with CUDA**. The original installation used an RTX 3060 with 12 GB of VRAM and 32 GB of system RAM. Calibrate the preset on the computer you will use. Check the space estimate before downloading weights. Custom model URLs require additional space beyond the displayed total.
 
 **Linux requirements:** a graphical desktop, an NVIDIA driver compatible with the CUDA 13 stack, Python 3.11 or newer with Tk and venv, curl and unzip. Building llama.cpp requires CMake and a C++ compiler, plus nvcc for CUDA acceleration. An existing `llama-server` on PATH can also be used. Saved credentials use the desktop's Secret Service keyring. Full installation and training validation on physical Linux GPUs remains planned.
+
+Existing training engines, ComfyUI and vision executables can be selected in Settings → Components. Loopback vision servers run locally. For a server on another computer, enter an HTTPS address and confirm the destination for the operation. A previously saved comparison using a custom image model may require choosing that file once on this installation.
 
 ## Your first project
 

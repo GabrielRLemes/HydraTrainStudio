@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image,ImageTk
 from configuracao import ROOT,DATA
+from layout_ui import flow,scrolling,pane,split
 
 log=logging.getLogger("hydra.studio")
 if not log.handlers:
@@ -50,13 +51,13 @@ class StudioBook(ttk.Notebook):
         pages={self.tab(t,"text"):t for t in self.tabs()}
         for title,icon in (("Início","home"),("Mídias","images"),("Revisão","layers"),
                            ("Treino e testes","play"),("Mesclar LoRAs","merge"),("Configuração","settings")):
-            if title=="Configuração":ttk.Frame(self.sidebar,style="Sidebar.TFrame").pack(fill="both",expand=True)
             target=pages[title]
             image=self.app.assets.icon(icon)
             b=ttk.Button(self.sidebar,text="Configurações" if title=="Configuração" else title,
                          image=image,compound="left",style="Nav.TButton",
                          command=lambda t=target:self.select(t) if getattr(self.app,"tree",None) else None)
-            b.pack(fill="x",pady=4);self.buttons[target]=b;self.icons[target]=icon
+            self.buttons[target]=b;self.icons[target]=icon
+        flow(self.sidebar,list(self.buttons.values()),6)
         self.changed()
 
 def install_window_icons(app,path):
@@ -87,19 +88,16 @@ def native_shell(app):
             app.bind("<Map>",mapped,add="+")
     except tk.TclError:log.warning("Ícone de janela indisponível")
     main=ttk.Frame(app);main.pack(fill="both",expand=True)
-    side=ttk.Frame(main,width=250,padding=(13,12),style="Sidebar.TFrame");side.pack(side="left",fill="y");side.pack_propagate(False)
-    def compact(event):
-        if event.widget is app:side.configure(width=220 if event.width<=1150 else 250)
-    app.bind("<Configure>",compact,add="+")
-    ttk.Separator(main,orient="vertical").pack(side="left",fill="y")
+    side=ttk.Frame(main,padding=(8,1),style="Header.TFrame")
+    side.pack(fill="x")
     content=ttk.Frame(main);content.pack(fill="both",expand=True)
-    bar=ttk.Frame(content,height=52,padding=(22,4));bar.pack(fill="x");bar.pack_propagate(False);bar.fixed_layout=True
+    bar=ttk.Frame(content,padding=(12,2));bar.pack(fill="x");bar.fixed_layout=True
     ttk.Label(bar,text="Projeto",style="Secondary.TLabel").pack(side="left")
     app.project_label=tk.StringVar(value=app.startup_root.name)
     projects=DATA/"projetos"
-    box=ttk.Combobox(bar,textvariable=app.project_label,width=48,state="readonly",
+    box=ttk.Combobox(bar,textvariable=app.project_label,width=14,state="readonly",
                      postcommand=lambda:box.configure(values=sorted(p.name for p in projects.iterdir() if p.is_dir()) if projects.exists() else ()))
-    box.pack(side="left",padx=12)
+    box.pack(side="left",padx=8,fill="x",expand=True)
     def switch(_):
         if not hasattr(app,"project"):
             app.project_label.set(app.startup_root.name);return
@@ -109,7 +107,7 @@ def native_shell(app):
         from dataset import Dataset
         app._save_edit();app.adopt(Dataset(projects/name))
     box.bind("<<ComboboxSelected>>",switch)
-    ttk.Frame(bar).pack(side="left",expand=True,fill="x")
+
     for title,cmd in (("Abrir",app._change_workspace),("Salvar",app.save_project),("Novo",app._reset)):
         ttk.Button(bar,text=title,image=app.assets.icon({"Abrir":"folder","Salvar":"save","Novo":"plus"}[title],18),compound="left",command=lambda fn=cmd:fn() if hasattr(app,"tree") else None).pack(side="left",padx=2)
     log.info("Navegação criada")
@@ -131,11 +129,10 @@ def startup_logging(app):
 
 def home(app):
     page=app.home_page
-    hero=ttk.Frame(page,padding=(0,12));hero.pack()
-    ttk.Label(hero,image=app.assets.image("branding/hydra_symbol_128.png",90)).grid(row=0,column=0,rowspan=2)
-    ttk.Label(hero,image=app.assets.image("branding/hydra_wordmark.png",330)).grid(row=0,column=1,sticky="sw",padx=12)
-    ttk.Label(hero,text="Coleta de mídias, revisão de datasets e treinamento de LoRAs",style="Secondary.TLabel").grid(row=1,column=1,sticky="nw",padx=12)
-    cards=ttk.Frame(page);cards.pack(fill="x",pady=12)
+    work=split(page,"vertical")
+    upper=scrolling(pane(work,115,275))
+    page=scrolling(pane(work,90,260))
+    cards=ttk.Frame(page);cards.pack(fill="x",pady=4)
     specs=[("Baixar mídias","Download de imagens e vídeos","download",app.media_tab),
            ("Revisar e captionar","Editar imagens e legendas","tag",app.tab_review),
            ("Treinar LoRA","Iniciar um treinamento","gpu",app.training_tab),
@@ -163,12 +160,16 @@ def home(app):
         tile.bind("<FocusOut>",lambda _,fn=highlight:fn(False))
         tile.configure(cursor="hand2");tiles.append(tile)
     def reflow(width):
-        cols=5 if width>=1020 else 3
+        cols=max(1,min(5,width//185))
         for col in range(5):cards.columnconfigure(col,weight=int(col<cols),uniform="tiles" if col<cols else "")
         for i,tile in enumerate(tiles):tile.grid(row=i//cols,column=i%cols,sticky="nsew",padx=4,pady=4,ipady=5)
     reflow(1120)
     cards.bind("<Configure>",lambda e:reflow(e.width))
-    card=ttk.LabelFrame(page,text="Status do projeto",padding=16);card.pack(fill="x",pady=8)
+    samples=ttk.Frame(page)
+    samples.pack(fill="x",pady=4)
+    app.home_samples=samples
+    samples.bind("<Map>",lambda _:app.after_idle(app.draw_home_samples))
+    card=ttk.LabelFrame(upper,text="Status do projeto",padding=16);card.pack(fill="x",pady=8)
     app.metrics=[]
     for i,(label,icon) in enumerate((("Imagens","images"),("Vídeos","film"),("Frames","layers"),("Com tags","tag"),("Com caption","caption"))):
         card.columnconfigure(i,weight=1,uniform="metric")
@@ -176,9 +177,11 @@ def home(app):
         ttk.Label(box,text=label,image=app.assets.icon(icon,18),compound="left").pack()
         var=tk.StringVar(value="0");app.metrics.append(var)
         ttk.Label(box,textvariable=var,style="Metric.TLabel").pack()
-    lower=ttk.Frame(page);lower.pack(fill="x",pady=10)
+    lower=ttk.Frame(upper);lower.pack(fill="x",pady=4,before=card)
     lower.columnconfigure((0,1),weight=1,uniform="lower")
     summary=ttk.LabelFrame(lower,text="Projeto atual",padding=16);summary.grid(row=0,column=0,sticky="nsew",padx=(0,8))
+    app.cover=ttk.Label(summary)
+    app.cover.pack(side="left",padx=(0,10))
     app.home_summary=tk.StringVar(value="Carregando projeto…")
     ttk.Label(summary,textvariable=app.home_summary,wraplength=390).pack(anchor="w")
     activity=ttk.LabelFrame(lower,text="Atividade atual",padding=16);activity.grid(row=0,column=1,sticky="nsew",padx=(8,0))

@@ -12,10 +12,11 @@ from tkinter import filedialog, messagebox, ttk
 
 from PIL import Image, ImageOps, ImageTk
 
-from core import AIConfig, atomic_json
+from core import AIConfig, atomic_json, confirm_inference_endpoint
 from captions import create_caption, create_tags, test_llama_vision
 from caption_profiles import PROFILE_ORDER, PROFILE_CUSTOM, PROFILE_SDXL, PROFILE_DETAILED, PROFILE_DESCRIPTIONS, get_profile_prompt
 from dataset import Dataset
+from local_files import folder_files
 from sources import SOURCES, SourceClient, build_query
 
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -33,7 +34,7 @@ class CaptionCreate(Studio, tk.Tk):
         super().__init__()
         self.title('Caption Create ' + VERSION)
         self.geometry('1360x890')
-        self.minsize(min(1100,self.winfo_screenwidth()-60), min(720,self.winfo_screenheight()-100))
+        self.minsize(min(800,self.winfo_screenwidth()-40), min(560,self.winfo_screenheight()-90))
         if deferred:
             self.title("HydraTrainStudio")
             self.geometry(f"{min(1440,self.winfo_screenwidth()-50)}x{min(900,self.winfo_screenheight()-95)}")
@@ -216,7 +217,7 @@ class CaptionCreate(Studio, tk.Tk):
         ttk.Button(act, text='Consultar resultados', command=self._search_preview).pack(side='left')
         ttk.Button(act, text='Baixar', command=self._download, style='Primary.TButton').pack(side='left', padx=10)
         ttk.Button(act,text="Baixar e importar arquivos…",command=self.download_with_files).pack(side="left")
-        results=ttk.LabelFrame(root,text="Resultados da busca",padding=10);results.pack(fill="both",expand=True,pady=6)
+        results=ttk.LabelFrame(getattr(self,"search_results",root),text="Resultados da busca",padding=10);results.pack(fill="both",expand=True,pady=6)
         self.search_out = tk.Text(results,width=1,height=9, wrap='word', state='disabled', font=('Consolas',10))
         self.search_out.pack(fill='both', expand=True, pady=(10,0))
 
@@ -229,21 +230,21 @@ class CaptionCreate(Studio, tk.Tk):
         ttk.Button(r, text='Selecionar imagens, animações ou vídeos', command=self._import_files).pack(side='left')
         ttk.Button(r, text='Selecionar uma pasta', command=self._import_folder).pack(side='left', padx=12)
         ttk.Checkbutton(r, text='Incluir subpastas', variable=self.import_recursive).pack(side='left')
-        self.import_out = tk.Text(root, height=3, state='disabled', font=('Consolas',10))
+        self.import_out = tk.Text(getattr(self,"import_results",root), width=1,height=3, state='disabled', font=('Consolas',10))
         self.import_out.pack(fill='both', expand=True, pady=14)
 
     def _review_ui(self):
-        pane=tk.PanedWindow(self.tab_review,orient="horizontal",sashwidth=7,showhandle=True,
-                            sashrelief="raised",borderwidth=0,background=ttk.Style().lookup("TFrame","background"))
-        pane.pack(fill="both",expand=True)
-        left=ttk.LabelFrame(pane,text="Imagens",padding=5)
-        right=ttk.LabelFrame(pane,text="Prévia e recorte",padding=5)
-        summary=ttk.LabelFrame(pane,text="Resumo do dataset",padding=6)
-        pane.add(left,width=205,minsize=115,stretch="never")
-        pane.add(right,width=450,minsize=220,stretch="always")
-        pane.add(summary,width=230,minsize=110,stretch="never")
+        from layout_ui import scrolling,split,pane
+        work=split(self.tab_review)
+        left=scrolling(pane(work,130,185,"never"),padding=3)
+        crop_tools=split(pane(work,215,540),"vertical")
+        right=pane(crop_tools,215,410)
+        crop_controls=scrolling(pane(crop_tools,48,82,"never"),padding=2)
+        summary=scrolling(pane(work,165,305,"never"),padding=3)
+        ttk.Label(left,text="Imagens",style="TileTitle.TLabel").pack(anchor="w")
+        ttk.Label(right,text="Prévia e recorte",style="TileTitle.TLabel").pack(anchor="w")
         self.review_summary=tk.StringVar()
-        ttk.Label(summary,textvariable=self.review_summary,justify="left",wraplength=220).pack(anchor="w",pady=(0,12))
+
         ttk.Label(left,text="Ctrl / Shift para selecionar").pack(anchor="w",pady=3)
         listbox=ttk.Frame(left);listbox.pack(fill="both",expand=True)
         self.tree=ttk.Treeview(listbox,columns=("origin","state","tags","caption"),selectmode="extended")
@@ -251,7 +252,7 @@ class CaptionCreate(Studio, tk.Tk):
         self.tiles=Tiles(self,listbox,self.tree)
         self.tree.bind('<<TreeviewSelect>>', self._select)
         actions = self.row(left, 8)
-        ttk.Button(actions, text='Aprovar seleção', command=self.approve_selection).pack(side='left')
+        ttk.Button(actions, text='Aprovar seleção',style="Primary.TButton", command=self.approve_selection).pack(side='left')
         ttk.Button(actions, text='Remover seleção', command=self._reject).pack(side='left', padx=6)
         ttk.Button(left, text='Próximo item pendente', command=self.next_pending).pack(fill='x')
         project_actions=ttk.LabelFrame(summary,text="Projeto inteiro",padding=4)
@@ -266,19 +267,19 @@ class CaptionCreate(Studio, tk.Tk):
             self.short_info.set(line if len(line)<57 else line[:19]+"…"+line[-34:])
         self.info.trace_add("write",compact_info);compact_info()
         ttk.Button(right,textvariable=self.short_info,command=lambda:messagebox.showinfo("Detalhes da imagem",self.info.get()),padding=(2,1)).pack(fill="x")
-        self.canvas = tk.Canvas(right, bg='#11131E', width=1,height=330, highlightthickness=0, cursor='crosshair')
+        self.canvas = tk.Canvas(right, bg='#11131E', width=1,height=1, highlightthickness=0, cursor='crosshair')
         self.canvas.pack(fill='both', expand=True)
         self.canvas.bind('<Configure>', lambda _:self._draw())
         self.canvas.bind('<Button-1>', self._crop_click)
         self.canvas.bind('<B1-Motion>', self._crop_click)
         self.canvas.bind('<ButtonRelease-1>', self._crop_done)
-        r = self.row(right,7)
+        r = self.row(crop_controls,2)
         ttk.Label(r, text='Escala do recorte').pack(side='left')
         ttk.Scale(r, from_=0.25, to=1.0, variable=self.crop_scale, command=self._crop_scale_change).pack(side='left', fill='x', expand=True, padx=10)
         ttk.Button(r, text='Centralizar', command=self._crop_center).pack(side='left')
         from regioes import edit_regions
         ttk.Button(r,text="Regiões da caption",command=lambda:edit_regions(self)).pack(side="left")
-        editor=ttk.Notebook(right);editor.pack(fill="x",pady=5)
+        editor=ttk.Notebook(summary);editor.pack(fill="x",pady=5,before=project_actions)
         a=ttk.Frame(editor);b=ttk.Frame(editor)
         editor.add(a,text="Tags (SDXL)");editor.add(b,text="Descrição (Krea2)")
         self.tags_text = tk.Text(a, width=1,height=7, wrap='word', undo=True, font=('Segoe UI',10))
@@ -286,6 +287,7 @@ class CaptionCreate(Studio, tk.Tk):
         for text in (self.tags_text,self.cap_text):
             scroll=ttk.Scrollbar(text.master,command=text.yview);scroll.pack(side="right",fill="y")
             text.configure(yscrollcommand=scroll.set);text.pack(fill="both",expand=True)
+        ttk.Label(summary,textvariable=self.review_summary,justify="left",wraplength=220).pack(side="bottom",anchor="w",pady=5)
         actions=ttk.LabelFrame(summary,text="Seleção atual",padding=6);actions.pack(fill="x",pady=8)
         for i,(label,cmd) in enumerate((("Salvar edição",self.save_selection_edit),("Gerar tags",lambda:self.review_ai("tags")),
                           ("Refazer tags",lambda:self.review_ai("tags",True)),("Gerar caption",lambda:self.review_ai("caption")),
@@ -493,9 +495,8 @@ class CaptionCreate(Studio, tk.Tk):
         if not folder: return
         root = Path(folder)
         recursive = self.import_recursive.get()
-        paths = root.rglob('*') if recursive else root.iterdir()
-        self._import_paths(p for p in paths if p.is_file() and p.suffix.lower() not in {".txt",".json",".csv"}
-                           and self.project.root not in p.resolve().parents)
+        paths = folder_files(root, recursive, exclude=self.project.root)
+        self._import_paths(p for p in paths if p.suffix.lower() not in {".txt", ".json", ".csv"})
 
     def _import_paths(self, paths):
         if self.busy:return
@@ -821,7 +822,7 @@ class CaptionCreate(Studio, tk.Tk):
             if it.get('status')=='pendente' and self.project.path_for(it).is_file():it['status']='aprovado'
         self.project.save();self._refresh_tree()
 
-    def _ai_config(self, need_caption_profile=True):
+    def _ai_config(self, need_caption_profile=True, *, confirm=True):
         if need_caption_profile and self.profile.get()==PROFILE_SDXL:
             raise ValueError('Selecione um perfil Krea 2 ou Personalizado para usar IA.')
         provider=self.provider.get()
@@ -834,9 +835,12 @@ class CaptionCreate(Studio, tk.Tk):
         api=self.api_url.get().strip()
         tokens=int(self.token_limit.get())
         if not 32<=tokens<=4096:raise ValueError("Use de 32 a 4096 tokens.")
-        return AIConfig(provider,self.model.get().strip(),self.api_key.get().strip(),prompt,
+        cfg = AIConfig(provider,self.model.get().strip(),self.api_key.get().strip(),prompt,
                         self.trigger.get().strip(),ollama_url=api if provider=='Ollama (local)' else 'http://127.0.0.1:11434',
                         llama_url=api if provider=='llama.cpp (local)' else 'http://127.0.0.1:8080',max_tokens=tokens)
+        if confirm:
+            confirm_inference_endpoint(cfg, messagebox.askyesno)
+        return cfg
 
     def _test_llama(self):
         try:

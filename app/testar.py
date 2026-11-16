@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 from ambiente import LORAS, CFG, PRIVATE_MODELS
-import yaml
+from caption.local_files import project_path
+from processos import local_opener
+from configuracao import write_json
 import argparse
 import json
 import socket
@@ -54,27 +56,32 @@ def server(dest,test_model=None,profile=None):
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     address = f"http://127.0.0.1:{port}"
+    transport = local_opener()
     def api(path, data=None):
         req = urllib.request.Request(address + path, data=None if data is None else json.dumps(data).encode(),
                                      headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=20) as reply:
-                return json.load(reply)
+            with transport.open(req, timeout=20) as reply:
+                payload = reply.read(8 * 1024**2 + 1)
+                if len(payload) > 8 * 1024**2:
+                    raise ValueError('Resposta do ComfyUI muito grande.')
+                return json.loads(payload)
         except urllib.error.HTTPError as exc:
-            raise RuntimeError(exc.read().decode()) from exc
+            raise RuntimeError(exc.read(512).decode(errors='replace')) from exc
 
     dest.mkdir(parents=True, exist_ok=True)
     LORAS.mkdir(parents=True, exist_ok=True)
-    extra = dest / "biblioteca.yaml"
+    extra = project_path(dest, "biblioteca.yaml")
     paths={"hydratrainer":{"base_path":str(ROOT),"loras":"loras"}}
     if PRIVATE_MODELS.is_dir():
         paths["pesos_locais"]={"base_path":str(PRIVATE_MODELS), **{k:k for k in ("vae","diffusion_models","text_encoders","checkpoints")}}
     if test_model:
         selected=Path(test_model)
+        if selected.suffix.lower() != '.safetensors':raise ValueError('Selecione uma base .safetensors.')
         if not selected.is_file():raise FileNotFoundError(selected)
         kind="checkpoints" if profile=="Illustrious" else "diffusion_models"
         paths["modelo_teste"]={"base_path":str(selected.parent),kind:".","is_default":True}
-    extra.write_text(yaml.safe_dump(paths),encoding="utf-8")
+    write_json(extra, paths)  # JSON is also a valid ComfyUI YAML path configuration.
     base = ROOT / "cache/comfy"
     base.mkdir(parents=True, exist_ok=True)
     cmd = [Path(CFG["python_comfy"]), "-s", COMFY / "ComfyUI/main.py",
@@ -82,7 +89,9 @@ def server(dest,test_model=None,profile=None):
            "--port", str(port), "--listen", "127.0.0.1", "--extra-model-paths-config", extra, "--offline", "--disable-all-custom-nodes",
            "--lowvram", "--preview-method", "none"]
     print("Iniciando ComfyUI para o teste. Log:", dest / "comfy.log", flush=True)
-    with (dest / "comfy.log").open("w", encoding="utf-8") as log:
+    log_path = project_path(dest, "comfy.log")
+    log_path.unlink(missing_ok=True)
+    with log_path.open("x", encoding="utf-8") as log:
         proc = subprocess.Popen(list(map(str, cmd)), cwd=COMFY / "ComfyUI", env=environment(),
                                 stdout=log, stderr=subprocess.STDOUT)
         try:
@@ -111,7 +120,9 @@ def generate(session, dest, workflow):
             if entry["status"]["status_str"] != "success":
                 raise RuntimeError(str(entry["status"]["messages"])[-3500:])
             image = entry["outputs"]["10"]["images"][0]
-            path = dest / image.get("subfolder","") / image["filename"]
+            if image.get("subfolder") or Path(image["filename"]).suffix.lower() != ".png":
+                raise ValueError("Resultado inesperado do ComfyUI.")
+            path = project_path(dest,image["filename"])
             if not path.is_file():
                 raise RuntimeError(f"Resultado ausente: {path}")
             return path

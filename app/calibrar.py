@@ -77,7 +77,6 @@ def probe(profile, res, card):
         finally:
             if proc.poll() is None:
                 if os.name!="nt":
-                    import psutil
                     for child in psutil.Process(proc.pid).children(recursive=True):child.kill()
                     proc.kill();proc.wait()
                 else:subprocess.run(["taskkill","/PID",str(proc.pid),"/T","/F"],capture_output=True)

@@ -1,4 +1,23 @@
-## Checkpoint ranking and caption hotfix
+## Security hardening and desktop layout update
+
+- Hardened local and external vision requests. Local services bypass environment proxies. Remote vision requires HTTPS and explicit destination confirmation. Automatic redirects are disabled to protect image payloads and credentials.
+- Added response-size limits and stricter media URL validation. e621 authentication is scoped to its official API host.
+- Added containment checks for imported assets, comparison manifests, checkpoint references, exports and region masks, including symbolic-link and Windows junction handling.
+- Imported SQLite catalogs are copied into a clean schema. CSV exports neutralize spreadsheet formulas, and regional annotations enforce image-format, dimension and size limits.
+- Project data cannot override trusted executable and external-library settings. Existing locally configured engines, ComfyUI and vision executables remain selectable in Settings.
+- Training-engine archives are pinned to revisions and SHA-256 digests. Cached archives are verified before extraction. Managed engine installations use revision-specific locations. CUDA package resolution uses an explicit index order.
+- Updated desktop styling, resizable work areas and compact checkpoint comparisons. Progress feedback remains accessible across workspaces.
+- Added 15 security regression tests, Windows/Linux CI, static security analysis and shell syntax checks. Release builds depend on successful verification.
+
+### Compatibility and verification
+
+An older comparison referencing an external test model may ask you to select that model again. Previously managed training engines may require installation into the new verified location. Existing custom engine paths can be selected in Settings → Components.
+
+All 15 security tests passed locally on Windows, including a real junction test. The updated desktop opened across six tabs, and 21 existing comparison manifests passed validation. Installer scripts passed syntax checks and release packages were built locally. Full Linux GPU execution and end-to-end training remain to be validated. These checks reduce known risks and do not establish the absence of vulnerabilities.
+
+The CI workflow runs on pushes and pull requests. Release packaging runs when a version tag is pushed and waits for verification. This source update alone does not replace binaries in an existing release.
+
+## Previous update — checkpoint ranking and caption hotfix
 
 - Compare checkpoints anonymously over ten rounds. A confirmed podium awards 5, 3 and 1 points. Confirmed rounds survive a restart. Instructions are available in Portuguese, English, Spanish and Simplified Chinese.
 - Choose a local test base or keep the family default. Krea2 tests use Turbo by default.

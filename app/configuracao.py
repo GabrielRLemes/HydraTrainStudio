@@ -1,16 +1,22 @@
 import json
 import os
-import shutil
 import subprocess
-import sys
 from pathlib import Path
 
-from platform_paths import VENV_PY, WINDOWS
+from platform_paths import VENV_PY
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.environ.get("HYDRA_DATA_DIR",ROOT/"dados")).resolve()
 DATA.mkdir(parents=True, exist_ok=True)
 CONF = DATA / "componentes.json"
+
+from engine_lock import managed_path, TRAIN_COMMIT, COMFY_COMMIT
+
+COMPONENTS = ROOT / "componentes"
+MANAGED_TRAIN = managed_path(COMPONENTS, "treino", "amenorira/lora-scripts-anima", TRAIN_COMMIT)
+MANAGED_COMFY = managed_path(COMPONENTS, "Comfy", "comfyanonymous/ComfyUI", COMFY_COMMIT)
+MANAGED_LLAMA = managed_path(COMPONENTS, "llama.cpp", "ggml-org/llama.cpp", "b11900")
+
 
 def write_json(path, value):
     from uuid import uuid4
@@ -27,35 +33,13 @@ from functools import lru_cache
 @lru_cache(maxsize=1)
 def discover():
     saved = read_json(CONF, {})
-    roots = [ROOT.parent, Path(ROOT.anchor)] if WINDOWS else []
-    roots += [Path(f"{c}:/") for c in "DECFGH" if WINDOWS and Path(f"{c}:/").is_dir()]
-    def locate(paths, check, fallback):
-        for path in paths:
-            if (path / check).is_file():
-                return str(path.resolve())
-        return str(fallback)
-    engine = locate([ROOT/"componentes/treino"]+[r/"LoraTrainer" for r in roots],
-                    Path("trainer/venv") / VENV_PY, ROOT/"componentes/treino")
-    comfy = locate([ROOT/"componentes/Comfy"]+[r/"Comfy" for r in roots],
-                   "ComfyUI/main.py", ROOT/"componentes/Comfy")
-    default = {"treino":engine,"comfy":comfy,"modelos":str(Path(engine)/"models"),
-               "python_comfy":str(Path(comfy)/"scripts/venv"/VENV_PY)}
-    for r in roots:
-        folder = r/"LLM"
-        if not folder.is_dir():
-            continue
-        servers = list(folder.glob("*/llama-server.exe"))
-        models = list(folder.glob("**/*abliterated*Q6_K.gguf"))
-        projs = list(folder.glob("**/*mmproj*Q8_0.gguf"))
-        for model in sorted(folder.glob("**/Qwen3.5-9B-*.gguf")):
-            prefix=model.name.rsplit("-",1)[0]
-            for projector in model.parent.glob("mmproj-"+prefix+"-*.gguf"):
-                default.update(modelo_think=str(model),projetor_think=str(projector))
-                break
-            if "modelo_think" in default:break
-        if servers and models and projs:
-            default.update(servidor=str(servers[0]), modelo_caption=str(models[0]), projetor=str(projs[0]))
-            break
+    # External executables are selected in Settings and persisted in CONF.
+    default = {"treino":str(MANAGED_TRAIN), "comfy":str(MANAGED_COMFY), "modelos":str(COMPONENTS/"pesos"),
+               "python_comfy":str(MANAGED_COMFY/"scripts/venv"/VENV_PY)}
+    for key, parent in (("treino", "treino"), ("comfy", "Comfy"), ("python_comfy", "Comfy"), ("servidor", "llama.cpp")):
+        value = Path(saved.get(key) or ".")
+        if value.is_relative_to(COMPONENTS/parent) and value != Path(default.get(key, MANAGED_LLAMA/"build/bin/llama-server")):
+            saved.pop(key)
     return {**default, **saved}
 
 def gpu():
