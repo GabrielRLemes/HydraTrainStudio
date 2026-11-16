@@ -187,7 +187,7 @@ class SecurityChecks(unittest.TestCase):
             model.touch()
             with self.assertRaises(ValueError):
                 comparar.approved_model(str(model))
-            self.assertEqual(comparar.approved_model(comparar.remember_model(model)), model)
+            self.assertTrue(comparar.approved_model(comparar.remember_model(model)).samefile(model))
             manifest["imagens"]["0-0"] = "../another.png"
             write_json(dest/"grade.json",manifest)
             with self.assertRaises(ValueError):
