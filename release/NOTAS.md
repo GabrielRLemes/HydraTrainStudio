@@ -1,3 +1,9 @@
+## Windows installer diagnostics — preview 4
+
+The Windows installer checks that the package contains the Studio executable and required startup files, then checks them again after extraction. Errors identify the failed stage and exact missing path. An installation log is saved as `%TEMP%\HydraTrainStudio-install.log`. This helps diagnose incomplete extraction or files removed after extraction. A reported missing executable on a Windows 11 machine remains unconfirmed until its installation log is available.
+
+This release also distributes the security and desktop updates below through both platform installers.
+
 ## Security hardening and desktop layout update
 
 - Hardened local and external vision requests. Local services bypass environment proxies. Remote vision requires HTTPS and explicit destination confirmation. Automatic redirects are disabled to protect image payloads and credentials.

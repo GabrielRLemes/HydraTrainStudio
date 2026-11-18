@@ -6,6 +6,13 @@ using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Windows.Forms;
 internal static class Setup {
+    static string logPath;
+    static string stage = "Starting installer";
+    static void Record(string message) {
+        try { File.AppendAllText(logPath, DateTime.UtcNow.ToString("o") + " " + message + Environment.NewLine); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
     static bool MatchesPackage(string path) {
         using (var input = File.OpenRead(path))
         using (var hash = SHA256.Create())
@@ -14,40 +21,72 @@ internal static class Setup {
     [STAThread] static void Main() {
         string temp = null;
         try {
+            logPath = Path.Combine(Path.GetTempPath(), "HydraTrainStudio-install.log");
+            Record("Installer @TAG@ started");
             string file = "HydraTrainStudio-app.zip";
             string repo = "@REPO@", tag = "@TAG@";
             string archive = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file);
+            stage = "Locating application package";
             if (!File.Exists(archive) || (repo.Length != 0 && !MatchesPackage(archive))) {
                 if (repo.Length == 0) throw new IOException("Coloque " + file + " ao lado do instalador.");
                 temp = Path.GetTempFileName();
+                stage = "Downloading application package from GitHub";
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 using (var client = new WebClient())
                     client.DownloadFile("https://github.com/" + repo + "/releases/download/" + tag + "/" + file, temp);
                 archive = temp;
             }
             string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HydraTrainStudio");
+            Record("Destination: " + root);
+            stage = "Verifying application package";
             using (var stream = File.OpenRead(archive)) {
                 using (var hash = SHA256.Create())
                     if (BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","").ToLowerInvariant() != "@SHA@")
                         throw new IOException("O pacote falhou na verificação SHA-256.");
                 stream.Position = 0;
-                using (var zip = new ZipArchive(stream, ZipArchiveMode.Read))
+                using (var zip = new ZipArchive(stream, ZipArchiveMode.Read)) {
+                    foreach (string required in new [] { "HydraTrainStudio.exe", "Abrir.ps1", "app/inicio.py" })
+                        if (zip.GetEntry(required) == null || zip.GetEntry(required).Length == 0)
+                            throw new IOException("Required file missing from package: " + required);
                     foreach (var entry in zip.Entries) {
+                        stage = "Extracting " + entry.FullName;
                         var dest = Path.GetFullPath(Path.Combine(root, entry.FullName));
                         if (!dest.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new IOException("Caminho inválido.");
                         Directory.CreateDirectory(Path.GetDirectoryName(dest));
                         entry.ExtractToFile(dest, true);
                     }
+                }
             }
             string launcher = Path.Combine(root,"HydraTrainStudio.exe");
+            stage = "Verifying installed files";
+            foreach (string required in new [] { "HydraTrainStudio.exe", "Abrir.ps1", "app/inicio.py" }) {
+                string installed = Path.Combine(root, required);
+                if (!File.Exists(installed) || new FileInfo(installed).Length == 0)
+                    throw new IOException("Installed file is missing or empty: " + installed +
+                        "\nCheck Windows Security > Protection history for a possible quarantine event.");
+            }
+            Record("Required application files installed successfully");
+            stage = "Creating Start menu shortcut";
             var shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
             var link = shell.GetType().InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, null, shell,
                 new object[]{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),"HydraTrainStudio.lnk")});
             link.GetType().InvokeMember("TargetPath",System.Reflection.BindingFlags.SetProperty,null,link,new object[]{launcher});
             link.GetType().InvokeMember("WorkingDirectory",System.Reflection.BindingFlags.SetProperty,null,link,new object[]{root});
             link.GetType().InvokeMember("Save",System.Reflection.BindingFlags.InvokeMethod,null,link,null);
-            Process.Start(launcher);
-        } catch(Exception e) { MessageBox.Show(e.Message,"HydraTrainStudio");Environment.ExitCode=1; }
-        finally { if(temp != null) File.Delete(temp); }
+            stage = "Starting " + launcher;
+            Process.Start(new ProcessStartInfo(launcher) { WorkingDirectory = root, UseShellExecute = true });
+            Record("Application launcher started");
+        } catch(Exception e) {
+            Record(stage + ": " + e.ToString());
+            MessageBox.Show(stage + "\n\n" + e.Message + "\n\nInstallation log: " + logPath,"HydraTrainStudio");
+            Environment.ExitCode=1;
+        }
+        finally {
+            if(temp != null) {
+                try { File.Delete(temp); }
+                catch (IOException e) { Record("Temporary download cleanup: " + e.Message); }
+                catch (UnauthorizedAccessException e) { Record("Temporary download cleanup: " + e.Message); }
+            }
+        }
     }
 }
