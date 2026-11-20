@@ -11,7 +11,10 @@ $choices['folder'] = $root
 $choices['start'] = 'True'
 $choices['desktop'] = 'True'
 try {
-    $install.Invoke($null, @($choices, [Action[string]]{ param($line) Write-Host $line }))
+    $arguments = [object[]]::new(2)
+    $arguments[0] = $choices.psobject.BaseObject
+    $arguments[1] = [Action[string]]{ param($line) Write-Host $line }
+    $install.Invoke($null, $arguments)
     foreach ($where in 'Programs','DesktopDirectory') {
         $link = Join-Path ([Environment]::GetFolderPath($where)) 'HydraTrainStudio.lnk'
         $target = (New-Object -ComObject WScript.Shell).CreateShortcut($link).TargetPath
