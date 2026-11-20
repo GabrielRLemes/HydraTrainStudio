@@ -128,8 +128,8 @@ def custom_asset(url,suffix):
     key=hashlib.sha256(url.encode()).hexdigest()[:16]
     return COMP/"selecionados"/key/name
 
-def install(choices):
-    cfg=discover()
+def install(choices, *, cfg=None, skip_assets=()):
+    if cfg is None:cfg=discover()
     if "Caption" in choices and cfg.get("llm_download"):
         for key,url in cfg["llm_download"].items():
             cfg[key]=str(fetch(url,custom_asset(url,".gguf")))
@@ -154,7 +154,7 @@ def install(choices):
         (base/".pronto").write_text(COMFY_COMMIT)
         cfg.update(comfy=str(base),python_comfy=str(cp))
     for a in ASSETS:
-        if not wanted(a,choices) or reusable(a,cfg,verify=True):continue
+        if a['name'] in skip_assets or not wanted(a,choices) or reusable(a,cfg,verify=True):continue
         n=a["name"]
         if n.startswith("joycaption/"):
             fetch(a["url"],COMP/n,a["sha"])

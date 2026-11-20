@@ -110,7 +110,7 @@ class Gallery:
         if str(self.controls_pane) in tuple(map(str,self.gallery_split.panes())):self.gallery_split.forget(self.controls_pane)
         self.canvas.yview_moveto(0)
     def set_run(self,run):
-        if self.run!=run:self.set_model("")
+        if self.run!=run:self.set_model(read_json(CONF,{}).get("test_models",{}).get(run.parent.name,""))
         rows=versions(run)
         if not rows:raise ValueError("Pasta sem LoRAs deste treino.")
         self.run=run

@@ -1,8 +1,13 @@
-﻿param([switch]$Components)
+param([switch]$Components, [string]$SetupPlan)
 $ErrorActionPreference='Stop'
 Set-Location -LiteralPath $PSScriptRoot
 Add-Type -AssemblyName System.Windows.Forms
 try {
+    if($SetupPlan){
+        $logs=Join-Path $PSScriptRoot 'dados/logs'
+        New-Item -ItemType Directory -Force -Path $logs | Out-Null
+        Start-Transcript -Path (Join-Path $logs 'setup.log') -Append | Out-Null
+    }
     $env:PYTHONUTF8='1'
     $env:PYTHONDONTWRITEBYTECODE='1'
     $venv=Join-Path $PSScriptRoot 'componentes/interface'
@@ -17,8 +22,10 @@ try {
         }
     }
     if(!$python){
+        if(!$SetupPlan){
         $reply=[Windows.Forms.MessageBox]::Show("Instalar o Python 3.12 e as bibliotecas da interface nesta pasta? Download estimado de 100 a 250 MB. Os modelos sao selecionados separadamente.","HydraTrainer",[Windows.Forms.MessageBoxButtons]::YesNo)
         if($reply -ne 'Yes'){exit 0}
+        }
         $cache=Join-Path $PSScriptRoot 'dados\downloads'
         $tools=Join-Path $PSScriptRoot 'componentes\uv'
         New-Item -ItemType Directory -Force -Path $cache,$tools | Out-Null
@@ -30,7 +37,7 @@ try {
                 $asset=$assets | Where-Object name -eq 'uv-x86_64-pc-windows-msvc.zip'
                 $archive=Join-Path $cache $asset.name
                 & (Join-Path ([Environment]::SystemDirectory) curl.exe) -fLsS --proto "=https" --proto-redir "=https" --retry 4 -o $archive $asset.url
-                if($LASTEXITCODE -ne 0 -or (Get-FileHash $archive -Algorithm SHA256).Hash -ne $asset.sha){throw "Falha ao verificar uv."}
+                if($LASTEXITCODE -ne 0 -or (Get-FileHash $archive -Algorithm SHA256).Hash -ne $asset.sha){throw "Could not verify the uv download."}
                 Expand-Archive -LiteralPath $archive -DestinationPath $tools -Force
                 $uv=(Get-ChildItem $tools -Recurse -Filter uv.exe -File | Select-Object -First 1).FullName
             }
@@ -39,18 +46,26 @@ try {
         $env:UV_PYTHON_INSTALL_DIR=Join-Path $PSScriptRoot 'componentes\python'
         $venv=Join-Path $PSScriptRoot 'componentes\interface'
         if(!(Test-Path (Join-Path $venv "Scripts/python.exe"))){& $uv venv $venv --python 3.12 --managed-python}
-        if($LASTEXITCODE -ne 0){throw 'Falha ao preparar Python 3.12.'}
+        if($LASTEXITCODE -ne 0){throw 'Could not prepare Python 3.12.'}
         $console=Join-Path $venv 'Scripts\python.exe'
         & $uv pip install --python $console 'av==17.1.0' 'numpy==2.5.4' 'pillow==13.0.0' 'requests==2.34.2' 'psutil>=7,<8' 'nvidia-ml-py==13.595.45' 'pyyaml>=6,<7'
-        if($LASTEXITCODE -ne 0){throw 'Falha ao instalar as dependencias da interface.'}
+        if($LASTEXITCODE -ne 0){throw 'Could not install the interface dependencies.'}
         New-Item -ItemType File -Force $ready | Out-Null
         $python=Join-Path $venv 'Scripts\pythonw.exe'
+    }
+    if($SetupPlan){
+        $console=Join-Path (Split-Path -Parent $python) 'python.exe'
+        & $console -B -u (Join-Path $PSScriptRoot 'app/setup_windows.py') $SetupPlan
+        if($LASTEXITCODE -ne 0){throw 'Could not prepare the selected components.'}
+        Stop-Transcript | Out-Null
+        exit 0
     }
     $script=if($Components){'app\componentes.py'}else{'app\inicio.py'}
     $log=Join-Path $PSScriptRoot 'dados\logs\inicializacao.log'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $log) | Out-Null
     Start-Process -FilePath $python -ArgumentList @('-X','utf8',('-'+'B'),('"'+(Join-Path $PSScriptRoot $script)+'"')) -WorkingDirectory $PSScriptRoot -WindowStyle Normal
 } catch {
+    if($SetupPlan){Write-Host $_.Exception.Message;exit 1}
     [Windows.Forms.MessageBox]::Show($_.Exception.Message,'HydraTrainer')|Out-Null
     exit 1
 }

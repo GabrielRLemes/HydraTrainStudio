@@ -1,3 +1,7 @@
+## Windows setup wizard — preview 5
+
+Choose the destination, training families, caption models, compatible test models and shortcuts in an English Windows wizard. Review the selections before downloading. For Studio alone, clear the training and caption selections. Full GPU training is outside the installer smoke test.
+
 ## Windows installer diagnostics — preview 4
 
 The Windows installer checks that the package contains the Studio executable and required startup files, then checks them again after extraction. Errors identify the failed stage and exact missing path. An installation log is saved as `%TEMP%\HydraTrainStudio-install.log`. This helps diagnose incomplete extraction or files removed after extraction. A reported missing executable on a Windows 11 machine remains unconfirmed until its installation log is available.

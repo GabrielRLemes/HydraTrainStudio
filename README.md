@@ -35,10 +35,10 @@ See the [update notes](release/NOTAS.md) for compatibility details and validatio
 
 | Platform | First launch | Open it again |
 |---|---|---|
-| Windows x64 | Download and run **HydraTrainStudio-Windows.exe** from a release. | Use the Start menu or open **HydraTrainStudio.exe** in `%LOCALAPPDATA%\HydraTrainStudio`. |
+| Windows x64 | Download and run **HydraTrainStudio-Windows.exe** from a release. | Use your chosen shortcut or open **HydraTrainStudio.exe** in the folder selected during setup. |
 | Linux x86-64 · experimental | Download **HydraTrainStudio-Linux.sh** and run `bash HydraTrainStudio-Linux.sh` from the download folder. | Use the application menu or run `bash "${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio/abrir-linux.sh"`. |
 
-The launcher downloads the release package, verifies its SHA-256 checksum, installs the interface and integration code, and opens the app. On the first launch, the component wizard lets you select the training families, **Caption** for local vision and **ComfyUI** for test generation. You can reopen it from the Components section in Settings.
+The launcher downloads the release package, verifies its SHA-256 checksum, installs the interface and integration code, and opens the app. Windows setup lets you choose the destination, training weights, vision models, test models and shortcuts. Leave the training and caption selections empty for a Studio-only installation. On Linux, the first-launch component wizard lets you select the training families, **Caption** for local vision and **ComfyUI** for test generation. You can reopen it from the Components section in Settings.
 
 Local training requires an **NVIDIA GPU with CUDA**. The original installation used an RTX 3060 with 12 GB of VRAM and 32 GB of system RAM. Calibrate the preset on the computer you will use. Check the space estimate before downloading weights. Custom model URLs require additional space beyond the displayed total.
 

@@ -280,7 +280,9 @@ class Hydra(Pipeline,Legendas,CaptionCreate):
         cfg=replace(super()._ai_config(need_caption_profile, confirm=False),thinking=thinking)
         if cfg.provider=="llama.cpp (local)" and self.cfg.get("servidor") and (joy or self.caption_process or self.api_url.get() in ("http://127.0.0.1:8080","")):
             cfg._managed_files=dict(self.cfg)
-            if joy:
+            if joy and self.cfg.get("joy_model") and self.cfg.get("joy_projector"):
+                cfg._managed_files.update(modelo_caption=self.cfg["joy_model"],projetor=self.cfg["joy_projector"])
+            elif joy:
                 folder=ROOT/"componentes/joycaption"
                 if not folder.is_dir():folder=Path(self.cfg["treino"])/"models/joycaption"
                 if not folder.is_dir():raise ValueError("Instale JoyCaption Beta One em Configurações → Componentes.")

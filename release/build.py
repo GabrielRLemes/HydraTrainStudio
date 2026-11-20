@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory() as tmp:
     def render(name):
         return (ROOT/"release"/name).read_text("utf-8-sig").replace("@REPO@",repo).replace("@TAG@",tag).replace("@SHA@",sha)
     cs=Path(tmp)/"Setup.cs";cs.write_text(render("Setup.cs.in"),"utf-8-sig")
-    build(cs,OUT/"HydraTrainStudio-Windows.exe",("/reference:System.IO.Compression.dll","/reference:System.IO.Compression.FileSystem.dll"))
+    build(cs,OUT/"HydraTrainStudio-Windows.exe",("/reference:System.IO.Compression.dll","/reference:System.IO.Compression.FileSystem.dll","/reference:System.Web.Extensions.dll",str(ROOT/"release/SetupWizard.cs")))
     (OUT/"HydraTrainStudio-Linux.sh").write_text(render("linux.sh.in"),encoding="utf8",newline="\n")
 files=[payload,OUT/"HydraTrainStudio-Windows.exe",OUT/"HydraTrainStudio-Linux.sh"]
 (OUT/"SHA256SUMS").write_text("".join(hashlib.sha256(p.read_bytes()).hexdigest()+"  "+p.name+"\n" for p in files),"ascii")

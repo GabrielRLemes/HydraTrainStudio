@@ -17,6 +17,12 @@ jobs:
         with:
           persist-credentials: false
       - run: python release/build.py
+      - name: Install in a clean Windows user folder and launch from the shortcut
+        shell: powershell
+        env:
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        timeout-minutes: 15
+        run: ./release/windows_install_check.ps1
       - shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
