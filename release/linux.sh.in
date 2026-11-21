@@ -5,26 +5,17 @@ tag='@TAG@'
 sha='@SHA@'
 payload=HydraTrainStudio-app.zip
 here="$(cd "$(dirname "$0")" && pwd)"
-dest="${XDG_DATA_HOME:-$HOME/.local/share}/HydraTrainStudio"
-mkdir -p "$dest"
 tmp="$(mktemp -d)"
-trap 'rm -f "$tmp/$payload"; rmdir "$tmp"' EXIT
+trap 'rm -f "$tmp/$payload" "$tmp/linux_setup.py"; rmdir "$tmp"' EXIT
 archive="$tmp/$payload"
 if [[ -f "$here/$payload" ]]; then cp -- "$here/$payload" "$archive"; fi
 if ! { [[ -f "$archive" ]] && printf '%s  %s\n' "$sha" "$archive" | sha256sum --check --status; }; then
-  [[ -n "$repo" ]] || { echo "Coloque $payload ao lado do instalador."; exit 1; }
+  [[ -n "$repo" ]] || { echo "Place $payload next to the installer."; exit 1; }
   curl --proto '=https' --proto-redir '=https' -fL --retry 3 "https://github.com/$repo/releases/download/$tag/$payload" -o "$archive"
 fi
 printf '%s  %s\n' "$sha" "$archive" | sha256sum -c -
-unzip -oq "$archive" -d "$dest"
-chmod +x "$dest/abrir-linux.sh"
-menu="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
-mkdir -p "$menu"
-python3 - "$dest" "$menu/hydratrainstudio.desktop" <<'PY'
-from pathlib import Path
-import sys
-root=Path(sys.argv[1])
-command=str(root/"abrir-linux.sh").replace("\\","\\\\").replace('"','\\"').replace('%','%%')
-Path(sys.argv[2]).write_text('[Desktop Entry]\nType=Application\nName=HydraTrainStudio\nExec=bash "'+command+'"\nIcon='+str(root/"HydraTrainStudio_Assets/branding/hydra_symbol_128.png")+'\nTerminal=true\nCategories=Graphics;\n',encoding="utf8")
-PY
-bash "$dest/abrir-linux.sh"
+python3 -c 'import sys, tkinter, venv; assert sys.version_info >= (3,11)' || {
+  echo "Install Python 3.11 or later with Tk and venv, then run setup again." >&2; exit 1;
+}
+unzip -p "$archive" app/linux_setup.py > "$tmp/linux_setup.py"
+python3 -B "$tmp/linux_setup.py" "$archive"

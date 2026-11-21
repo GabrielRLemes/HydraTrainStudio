@@ -55,7 +55,7 @@ try {
     }
     if($SetupPlan){
         $console=Join-Path (Split-Path -Parent $python) 'python.exe'
-        & $console -B -u (Join-Path $PSScriptRoot 'app/setup_windows.py') $SetupPlan
+        & $console -B -u (Join-Path $PSScriptRoot 'app/setup_components.py') $SetupPlan
         if($LASTEXITCODE -ne 0){throw 'Could not prepare the selected components.'}
         Stop-Transcript | Out-Null
         exit 0

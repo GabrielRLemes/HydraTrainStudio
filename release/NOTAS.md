@@ -1,3 +1,7 @@
+## Linux graphical installer — preview 7
+
+Run the Linux shell installer from a graphical session to choose the installation directory, training families, caption models, test models and launchers in English. Leave training and captions unchecked to install Studio alone. Windows and Ubuntu installation checks run before publishing the packages. GPU training remains outside these checks.
+
 ## Windows setup wizard — preview 6
 
 Choose the destination, training families, caption models, compatible test models and shortcuts in an English Windows wizard. Review the selections before downloading. For Studio alone, clear the training and caption selections. Full GPU training is outside the installer smoke test.

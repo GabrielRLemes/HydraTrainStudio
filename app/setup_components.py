@@ -1,4 +1,5 @@
-"""Apply the Windows setup wizard's selections using the shared component installer."""
+"""Apply the desktop setup wizard's selections using the shared component installer."""
+import os
 import hashlib
 import shutil
 import sys
@@ -97,7 +98,8 @@ def apply(plan):
         if plan["comfy"].startswith("Use"):
             src = Path(plan["comfyFolder"])
             py = Path(plan["comfyPython"])
-            if src.name.lower()!="comfyui" or not (src/"main.py").is_file() or not py.is_file() or py.name.lower()!="python.exe":
+            valid_python = py.name.lower()=="python.exe" if os.name=="nt" else os.access(py,os.X_OK)
+            if not (src.parent/"ComfyUI"/"main.py").is_file() or src.resolve()!=(src.parent/"ComfyUI").resolve() or not py.is_file() or not valid_python:
                 raise ValueError("Select a valid ComfyUI installation and its Python interpreter.")
             cfg.update(comfy=str(src.parent),python_comfy=str(py))
         else:
